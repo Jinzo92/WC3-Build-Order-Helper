@@ -1044,7 +1044,7 @@ if (loadFolderBtn && folderInput && boSelect) {
             try {
                 const response = await fetch(url);
                 const imported = await response.json();
-                applyBuildOrder(imported);
+                applyBuildOrder(imported, val); // val contains the URL/name
             } catch (err) {
                 alert("Error loading build order from GitHub!");
             }
@@ -1056,7 +1056,7 @@ if (loadFolderBtn && folderInput && boSelect) {
                 reader.onload = function(evt) {
                     try {
                         const imported = JSON.parse(evt.target.result);
-                        applyBuildOrder(imported);
+                        applyBuildOrder(imported, val); // val is the filename
                     } catch (err) {
                         alert("Error reading file! Is it valid JSON?");
                     }
@@ -1067,8 +1067,43 @@ if (loadFolderBtn && folderInput && boSelect) {
     });
 }
 
-function applyBuildOrder(data) {
+function applyBuildOrder(data, fileName = '') {
     if (Array.isArray(data)) {
+        // --- Auto Race Detection ---
+        let detectedRace = null;
+        const allIcons = data.flatMap(item => item.icons || []);
+        const nameToSearch = (fileName + " " + (data[0]?.action || "")).toLowerCase();
+
+        // 1. Check by keywords in name/first action
+        if (nameToSearch.includes('human')) detectedRace = 'human';
+        else if (nameToSearch.includes('orc')) detectedRace = 'orc';
+        else if (nameToSearch.includes('undead')) detectedRace = 'undead';
+        else if (nameToSearch.includes('nightelf') || nameToSearch.includes('night elf')) detectedRace = 'nightelf';
+
+        // 2. Fallback: Check by key icons
+        if (!detectedRace) {
+            const raceCheckMap = {
+                human: ['Peasant', 'Town Hall', 'Altar of Kings', 'Farm'],
+                orc: ['Peon', 'Great Hall', 'Altar of Storms', 'Burrow'],
+                undead: ['Acolyte', 'Necropolis', 'Altar of Darkness', 'Ziggurat'],
+                nightelf: ['Wisp', 'Tree of Life', 'Altar of Elders', 'Moon Well']
+            };
+            
+            for (const [r, icons] of Object.entries(raceCheckMap)) {
+                if (allIcons.some(icon => icons.includes(icon))) {
+                    detectedRace = r;
+                    break;
+                }
+            }
+        }
+
+        if (detectedRace && detectedRace !== savedRace) {
+            savedRace = detectedRace;
+            localStorage.setItem('wc3_selected_race', savedRace);
+            applyRaceUI(savedRace); // Update the dropdown UI
+        }
+        // ---------------------------
+
         buildOrder = data.map(item => ({
             ...item,
             gold: item.gold || 0,
