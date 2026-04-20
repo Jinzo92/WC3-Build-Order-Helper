@@ -879,7 +879,7 @@ function createRow(item) {
             <button type="button" class="del-btn">🗑️</button>
             <div class="sound-toggle-wrapper" style="display:flex; flex-direction:column; align-items:center; gap:2px;">
                 <label style="cursor:pointer; display:flex; flex-direction:column; align-items:center;">
-                    <img src="icons/sound.png" style="width:24px; height:24px; opacity:${item.useSound ? '1' : '0.4'}; transition:opacity 0.2s;" class="sound-icon-status">
+                    <img src="icons/sound.png" style="width:30px; height:30px; opacity:${item.useSound ? '1' : '0.4'}; filter: brightness(0) invert(1); transition:all 0.2s;" class="sound-icon-status">
                     <input type="checkbox" class="sound-checkbox" ${item.useSound ? 'checked' : ''} style="margin-top:2px;">
                 </label>
             </div>
