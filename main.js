@@ -1377,3 +1377,41 @@ customIconInput.addEventListener('change', (e) => {
         }
     }
 });
+
+// --- Feedback System ---
+const feedbackBtn = document.getElementById('feedbackBtn');
+const feedbackModal = document.getElementById('feedbackModal');
+const closeFeedbackBtn = document.getElementById('closeFeedbackBtn');
+const submitFeedbackBtn = document.getElementById('submitFeedbackBtn');
+const feedbackNameInput = document.getElementById('feedbackName');
+const feedbackMsgInput = document.getElementById('feedbackMessage');
+
+if (feedbackBtn && feedbackModal && closeFeedbackBtn && submitFeedbackBtn) {
+    feedbackBtn.addEventListener('click', () => {
+        feedbackModal.classList.add('active');
+    });
+
+    closeFeedbackBtn.addEventListener('click', () => {
+        feedbackModal.classList.remove('active');
+    });
+
+    submitFeedbackBtn.addEventListener('click', () => {
+        const name = feedbackNameInput.value.trim() || 'Anonymous';
+        const msg = feedbackMsgInput.value.trim();
+        
+        if (!msg) {
+            alert('Please enter a message first!');
+            return;
+        }
+
+        const title = encodeURIComponent(`[Feedback/Bug] from ${name}`);
+        const body = encodeURIComponent(`Feedback/Bug Content:\n\n${msg}\n\n--- Submitted via Build Order Helper ---`);
+        const url = `https://github.com/Jinzo92/WC3-Build-Order-Helper/issues/new?title=${title}&body=${body}`;
+        
+        window.open(url, '_blank');
+        feedbackModal.classList.remove('active');
+        feedbackNameInput.value = '';
+        feedbackMsgInput.value = '';
+    });
+}
+// -----------------------------
