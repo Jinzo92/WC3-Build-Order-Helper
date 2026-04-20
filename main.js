@@ -374,7 +374,7 @@ function renderIconsHTML(iconsArray, raceId, type = 'event') {
             return;
         }
 
-        let folder = raceId.charAt(0).toUpperCase() + raceId.slice(1);
+        let folder = raceId.toLowerCase();
         
         // Use mapping if available, otherwise fallback to sanitized name
         let iconKey = ICON_MAPPING[iconName] || iconName;
@@ -758,7 +758,7 @@ const importFile = document.getElementById('importFile');
 function getEntityIconPath(iconName, raceId) {
     let iconKey = ICON_MAPPING[iconName] || iconName;
     let fileName = iconKey.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
-    let folder = raceId.charAt(0).toUpperCase() + raceId.slice(1);
+    let folder = raceId.toLowerCase();
     
     // We return a primary path, fallback logic will handle the rest via onerror
     // Trying items folder first as it's common now
@@ -780,7 +780,7 @@ function buildSelectHTML(selectedVal) {
             // Build robust fallback logic using a retry counter
             let iconKey = ICON_MAPPING[entity] || entity;
             let fileName = iconKey.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
-            let folder = savedRace.charAt(0).toUpperCase() + savedRace.slice(1);
+            let folder = savedRace.toLowerCase();
             let trys = [
                 `icons/${fileName}.png`,
                 `icons/${fileName}.webp`,
