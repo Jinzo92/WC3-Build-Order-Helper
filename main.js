@@ -941,14 +941,48 @@ if (resetEditorBtn) {
     });
 }
 
-// --- Local Folder BO Loader ---
+// --- Build Order Loader (GitHub & Local) ---
 const loadFolderBtn = document.getElementById('loadFolderBtn');
 const boSelect = document.getElementById('boSelect');
 const folderInput = document.getElementById('folderInput');
 
-let loadedBOFiles = {};
+let loadedBOFiles = {}; // Maps filename to either a File object (local) or a URL string (remote)
+
+// GitHub Config
+const GITHUB_USER = 'Jinzo92';
+const GITHUB_REPO = 'WC3-Build-Order-Helper';
+const GITHUB_PATH = 'build-orders';
+
+async function fetchGithubBuildOrders() {
+    try {
+        const response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${GITHUB_PATH}`);
+        if (!response.ok) throw new Error('GitHub API not available');
+        
+        const files = await response.json();
+        const jsonFiles = files.filter(f => f.name.endsWith('.json'));
+        
+        if (jsonFiles.length > 0) {
+            // Only clear if we actually have remote files
+            boSelect.innerHTML = '<option value="">-- Select GitHub BO --</option>';
+            
+            jsonFiles.forEach(file => {
+                const option = document.createElement('option');
+                option.value = 'remote:' + file.download_url; // Prefix to distinguish from local
+                option.textContent = "🌐 " + file.name.replace('.json', '');
+                boSelect.appendChild(option);
+            });
+            boSelect.style.display = 'block';
+        }
+    } catch (err) {
+        console.warn("Could not load BOs from GitHub:", err);
+    }
+}
 
 if (loadFolderBtn && folderInput && boSelect) {
+    // Show select by default (will be filled by GitHub or stay empty/hidden if error)
+    boSelect.style.display = 'block';
+    fetchGithubBuildOrders();
+
     loadFolderBtn.addEventListener('click', () => {
         folderInput.click();
     });
@@ -958,17 +992,18 @@ if (loadFolderBtn && folderInput && boSelect) {
         const files = e.target.files;
         if (!files || files.length === 0) return;
         
-        boSelect.innerHTML = '<option value="">-- Select BO --</option>';
         loadedBOFiles = {};
         let fileCount = 0;
+        
+        // Clear and add local options
+        boSelect.innerHTML = '<option value="">-- Select Local BO --</option>';
         
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             if (file.name.endsWith('.json')) {
                 const option = document.createElement('option');
-                // Use relative path or just name
                 option.value = file.name;
-                option.textContent = file.name.replace('.json', '');
+                option.textContent = "📁 " + file.name.replace('.json', '');
                 boSelect.appendChild(option);
                 
                 loadedBOFiles[file.name] = file;
@@ -977,46 +1012,77 @@ if (loadFolderBtn && folderInput && boSelect) {
         }
         
         if (fileCount > 0) {
-            boSelect.style.display = 'block';
-            loadFolderBtn.style.display = 'none';
+            // Add a reload button to switch back to GitHub
+            const divider = document.createElement('option');
+            divider.disabled = true;
+            divider.textContent = "-------------------";
+            boSelect.appendChild(divider);
+
+            const backOpt = document.createElement('option');
+            backOpt.value = "action:reload_github";
+            backOpt.textContent = "🔄 Back to GitHub Builds";
+            boSelect.appendChild(backOpt);
         } else {
             alert('No .json files found in that folder!');
+            fetchGithubBuildOrders(); // Revert to GitHub if nothing found
         }
-        // reset input so the same folder can be picked again if needed
         e.target.value = '';
     });
 
-    boSelect.addEventListener('change', (e) => {
-        const fileName = e.target.value;
-        const file = loadedBOFiles[fileName];
-        
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                try {
-                    const imported = JSON.parse(evt.target.result);
-                    if (Array.isArray(imported)) {
-                        buildOrder = imported.map(item => ({
-                            ...item,
-                            gold: item.gold || 0,
-                            wood: item.wood || 0,
-                            foodMax: item.foodMax || 0,
-                            icons: item.icons || (item.icon ? [item.icon] : [])
-                        }));
-                        
-                        localStorage.setItem('wc3_build_order', JSON.stringify(buildOrder));
-                        resetTimer();
-                        initTimeline();
-                        updateDisplay();
-                        if (editorModal.classList.contains('active')) renderEditor();
+    boSelect.addEventListener('change', async (e) => {
+        const val = e.target.value;
+        if (!val) return;
+
+        if (val === "action:reload_github") {
+            fetchGithubBuildOrders();
+            return;
+        }
+
+        if (val.startsWith('remote:')) {
+            // Load from GitHub URL
+            const url = val.replace('remote:', '');
+            try {
+                const response = await fetch(url);
+                const imported = await response.json();
+                applyBuildOrder(imported);
+            } catch (err) {
+                alert("Error loading build order from GitHub!");
+            }
+        } else {
+            // Load from local File object (stored in loadedBOFiles)
+            const file = loadedBOFiles[val];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    try {
+                        const imported = JSON.parse(evt.target.result);
+                        applyBuildOrder(imported);
+                    } catch (err) {
+                        alert("Error reading file! Is it valid JSON?");
                     }
-                } catch (err) {
-                    alert("Error reading file! Is it valid JSON?");
-                }
-            };
-            reader.readAsText(file);
+                };
+                reader.readAsText(file);
+            }
         }
     });
+}
+
+function applyBuildOrder(data) {
+    if (Array.isArray(data)) {
+        buildOrder = data.map(item => ({
+            ...item,
+            gold: item.gold || 0,
+            wood: item.wood || 0,
+            foodMax: item.foodMax || 0,
+            icons: item.icons || (item.icon ? [item.icon] : [])
+        }));
+        
+        localStorage.setItem('wc3_build_order', JSON.stringify(buildOrder));
+        resetTimer();
+        initTimeline();
+        updateDisplay();
+        if (editorModal.classList.contains('active')) renderEditor();
+    }
 }
 // -----------------------------
 
