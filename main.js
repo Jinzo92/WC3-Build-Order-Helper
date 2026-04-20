@@ -887,6 +887,27 @@ function createRow(item) {
     `;
     
     // Delegation for dropdowns within the row
+    const soundCheckbox = div.querySelector('.sound-checkbox');
+    const soundSelectRow = div.querySelector('.sound-select-row');
+    const soundIconStatus = div.querySelector('.sound-icon-status');
+
+    if (soundCheckbox) {
+        soundCheckbox.addEventListener('change', () => {
+            const isChecked = soundCheckbox.checked;
+            soundSelectRow.style.display = isChecked ? 'flex' : 'none';
+            soundIconStatus.style.opacity = isChecked ? '1' : '0.4';
+        });
+    }
+
+    const playSoundBtn = div.querySelector('.play-sound-btn');
+    if (playSoundBtn) {
+        playSoundBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent row click from firing
+            const soundPath = div.querySelector('.sound-dropdown').value;
+            playSound(soundPath, 0.7);
+        });
+    }
+
     div.addEventListener('click', (e) => {
         const trigger = e.target.closest('.entity-select-trigger');
         if (trigger) {
@@ -933,26 +954,6 @@ function createRow(item) {
             return;
         }
 
-        const soundCheckbox = div.querySelector('.sound-checkbox');
-        const soundSelectRow = div.querySelector('.sound-select-row');
-        const soundIconStatus = div.querySelector('.sound-icon-status');
-
-        if (soundCheckbox) {
-            soundCheckbox.addEventListener('change', () => {
-                const isChecked = soundCheckbox.checked;
-                soundSelectRow.style.display = isChecked ? 'flex' : 'none';
-                soundIconStatus.style.opacity = isChecked ? '1' : '0.4';
-            });
-        }
-
-        const playSoundBtn = div.querySelector('.play-sound-btn');
-        if (playSoundBtn) {
-            playSoundBtn.addEventListener('click', () => {
-                const soundPath = div.querySelector('.sound-dropdown').value;
-                playSound(soundPath, 0.7);
-            });
-        }
-        
         const delBtn = e.target.closest('.del-btn');
         if (delBtn) {
             div.remove();
