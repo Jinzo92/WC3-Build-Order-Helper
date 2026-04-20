@@ -12,10 +12,11 @@ const SOUND_CATALOG = {
         "stelth.mp3", "thrall hall.mp3", "work work.mp3", "yes me lord.mp3"
     ],
     "Voice": [
-        "base.mp3", "be happy.mp3", "check worker.mp3", "creep.mp3", "defend base.mp3", 
-        "expand.mp3", "fix army.mp3", "harass.mp3", "level up.mp3", "positioning.mp3", 
-        "scout enemy.mp3", "speech.mp3", "t2 buildings.mp3", "t3 buildings.mp3", 
-        "tech 3.mp3", "train hero.mp3", "train units.mp3", "use items.mp3"
+        "base.mp3", "be happy.mp3", "buy items.mp3", "check worker.mp3", "creep.mp3", 
+        "defend base.mp3", "expand.mp3", "fix army.mp3", "harass.mp3", "level up.mp3", 
+        "positioning.mp3", "scout enemy.mp3", "speech.mp3", "t2 buildings.mp3", 
+        "t3 buildings.mp3", "tech 3.mp3", "train hero.mp3", "train units.mp3", 
+        "use items.mp3"
     ],
     "Other": [
         "amongus.mp3", "applepay.mp3", "faaah.mp3", "fortnite.mp3", 
