@@ -3,39 +3,56 @@ const GOLD_ICON = `<img src="icons/Gold.png" alt="Gold">`;
 const WOOD_ICON = `<img src="icons/Wood.png" alt="Wood">`;
 
 // --- Sound System Configuration ---
-const SOUND_PATH = 'Sound/WC3/';
-const SPECIAL_SOUNDS = {
-    'tier2': 'tier2.mp3',
-    'tier3': 'tier3.mp3',
-    'hero': 'hero.mp3',
-    'default': 'ping.mp3'
+const SOUND_BASE_PATH = 'Sound/';
+const SOUND_CATALOG = {
+    "Warcraft": [
+        "aaaaahhhh.mp3", "die insect.mp3", "for the alliance.mp3", "ghoul urgh.mp3", 
+        "gnomedeath.mp3", "gryphon.mp3", "human death.mp3", "i got magic hands.mp3", 
+        "loktar.mp3", "me lord.mp3", "quest done.mp3", "ready to serve.mp3", 
+        "stelth.mp3", "thrall hall.mp3", "work work.mp3", "yes me lord.mp3"
+    ],
+    "Other": [
+        "amongus.mp3", "applepay.mp3", "faaah.mp3", "fortnite.mp3", 
+        "undertaker.mp3", "woooow.mp3", "wrong buzzer.mp3"
+    ]
 };
+
 const TIER2_KEYWORDS = ["Keep", "Stronghold", "Halls of the Dead", "Tree of Ages", "Tier 2", "Tech 2"];
 const TIER3_KEYWORDS = ["Castle", "Fortress", "Black Citadel", "Tree of Eternity", "Tier 3", "Tech 3"];
 const HERO_KEYWORDS = ["Altars", "Train Archmage", "Train Paladin", "Train Mountain King", "Train Blood Mage", "Train Blademaster", "Train Far Seer", "Train Tauren Chieftain", "Train Shadow Hunter", "Train Death Knight", "Train Lich", "Train Dreadlord", "Train Crypt Lord", "Train Demon Hunter", "Train Keeper", "Train Priestess", "Train Warden"];
 
-function playActionSound(actionText) {
-    try {
-        let soundFile = SPECIAL_SOUNDS['default'];
-        
-        const lowerAction = actionText.toLowerCase();
-        if (TIER2_KEYWORDS.some(k => lowerAction.includes(k.toLowerCase()))) {
-            soundFile = SPECIAL_SOUNDS['tier2'];
-        } else if (TIER3_KEYWORDS.some(k => lowerAction.includes(k.toLowerCase()))) {
-            soundFile = SPECIAL_SOUNDS['tier3'];
-        } else if (HERO_KEYWORDS.some(k => lowerAction.includes(k.toLowerCase()))) {
-            soundFile = SPECIAL_SOUNDS['hero'];
-        }
+const SPECIAL_SOUNDS = {
+    'tier2': 'warcraft/quest done.mp3', // Fallback defaults
+    'tier3': 'warcraft/quest done.mp3',
+    'hero': 'warcraft/ready to serve.mp3',
+    'default': 'warcraft/ping.mp3' // Note: ping.mp3 was not in the list but kept for logic
+};
 
-        const audio = new Audio(SOUND_PATH + soundFile);
-        audio.volume = 0.4;
-        audio.play().catch(e => {
-            // Audio might be blocked by browser until user interacts
-            console.warn("Audio playback failed (interaction required?):", e);
-        });
+function playSound(path, volume = 0.5) {
+    try {
+        const audio = new Audio(SOUND_BASE_PATH + path);
+        audio.volume = volume;
+        audio.play().catch(e => console.warn("Playback failed:", e));
     } catch (err) {
         console.error("Sound error:", err);
     }
+}
+
+function playActionSound(actionText, customSound = null) {
+    if (customSound) {
+        playSound(customSound, 0.6);
+        return;
+    }
+    
+    // Auto-detection logic (fallback)
+    const lowerAction = actionText.toLowerCase();
+    let soundFile = null;
+    
+    if (TIER2_KEYWORDS.some(k => lowerAction.includes(k.toLowerCase()))) soundFile = SPECIAL_SOUNDS['tier2'];
+    else if (TIER3_KEYWORDS.some(k => lowerAction.includes(k.toLowerCase()))) soundFile = SPECIAL_SOUNDS['tier3'];
+    else if (HERO_KEYWORDS.some(k => lowerAction.includes(k.toLowerCase()))) soundFile = SPECIAL_SOUNDS['hero'];
+
+    if (soundFile) playSound(soundFile, 0.4);
 }
 // ----------------------------------
 
@@ -540,7 +557,7 @@ function updateDisplay() {
             // Trigger sound if this event just passed and hasn't played yet
             if (isRunning && !event.hasPlayedSound) {
                 event.hasPlayedSound = true;
-                playActionSound(event.action);
+                playActionSound(event.action, event.sound);
             }
             
             node.classList.add('passed');
@@ -846,8 +863,27 @@ function createRow(item) {
                 ${iconsContainerHtml}
             </div>
             <button type="button" class="add-icon-btn" style="background:rgba(16, 185, 129, 0.1); color:#10b981; border:1px solid rgba(16, 185, 129, 0.3); border-radius:8px; cursor:pointer; width:100%; padding:3px; transition: all 0.2s; margin-top:2px;" title="Add another icon to this row">➕</button>
+            
+            <div class="sound-select-row" style="margin-top: 8px; display: ${item.useSound ? 'flex' : 'none'}; align-items: center; gap: 5px;">
+                <select class="editor-input sound-dropdown" style="flex: 1; font-size: 0.85rem; padding: 4px;">
+                    ${Object.entries(SOUND_CATALOG).map(([cat, files]) => `
+                        <optgroup label="${cat}">
+                            ${files.map(f => `<option value="${cat.toLowerCase()}/${f}" ${item.sound === (cat.toLowerCase()+'/'+f) ? 'selected' : ''}>${f.replace('.mp3','')}</option>`).join('')}
+                        </optgroup>
+                    `).join('')}
+                </select>
+                <button type="button" class="play-sound-btn" style="background:none; border:none; cursor:pointer; font-size: 1.1rem;" title="Preview Sound">▶️</button>
+            </div>
         </div>
-        <button type="button" class="del-btn">🗑️</button>
+        <div class="row-actions" style="display:flex; flex-direction:column; gap:5px; align-items:center;">
+            <button type="button" class="del-btn">🗑️</button>
+            <div class="sound-toggle-wrapper" style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                <label style="cursor:pointer; display:flex; flex-direction:column; align-items:center;">
+                    <img src="icons/sound.png" style="width:24px; height:24px; opacity:${item.useSound ? '1' : '0.4'}; transition:opacity 0.2s;" class="sound-icon-status">
+                    <input type="checkbox" class="sound-checkbox" ${item.useSound ? 'checked' : ''} style="margin-top:2px;">
+                </label>
+            </div>
+        </div>
     `;
     
     // Delegation for dropdowns within the row
@@ -897,6 +933,26 @@ function createRow(item) {
             return;
         }
 
+        const soundCheckbox = div.querySelector('.sound-checkbox');
+        const soundSelectRow = div.querySelector('.sound-select-row');
+        const soundIconStatus = div.querySelector('.sound-icon-status');
+
+        if (soundCheckbox) {
+            soundCheckbox.addEventListener('change', () => {
+                const isChecked = soundCheckbox.checked;
+                soundSelectRow.style.display = isChecked ? 'flex' : 'none';
+                soundIconStatus.style.opacity = isChecked ? '1' : '0.4';
+            });
+        }
+
+        const playSoundBtn = div.querySelector('.play-sound-btn');
+        if (playSoundBtn) {
+            playSoundBtn.addEventListener('click', () => {
+                const soundPath = div.querySelector('.sound-dropdown').value;
+                playSound(soundPath, 0.7);
+            });
+        }
+        
         const delBtn = e.target.closest('.del-btn');
         if (delBtn) {
             div.remove();
@@ -1144,6 +1200,9 @@ saveEditorBtn.addEventListener('click', () => {
         
         let rowIcons = Array.from(row.querySelectorAll('.entity-select-trigger')).map(trigger => trigger.dataset.value);
         
+        const soundDropdown = row.querySelector('.sound-dropdown');
+        const soundCheckbox = row.querySelector('.sound-checkbox');
+
         newOrder.push({
             time: parseInt(inputs[0].value) || 0,
             gold: parseInt(inputs[1].value) || 0,
@@ -1151,7 +1210,9 @@ saveEditorBtn.addEventListener('click', () => {
             food: parseInt(inputs[3].value) || 0,
             foodMax: parseInt(inputs[4].value) || 0,
             action: inputs[5].value,
-            icons: rowIcons
+            icons: rowIcons,
+            useSound: soundCheckbox.checked,
+            sound: soundDropdown.value
         });
     });
     newOrder.sort((a,b) => a.time - b.time);
