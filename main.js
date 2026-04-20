@@ -14,8 +14,11 @@ const SOUND_CATALOG = {
     "Other": [
         "amongus.mp3", "applepay.mp3", "faaah.mp3", "fortnite.mp3", 
         "undertaker.mp3", "woooow.mp3", "wrong buzzer.mp3"
-    ]
+    ],
+    "Custom": []
 };
+
+let CUSTOM_SOUND_OBJECTS = {}; // Maps name to Blob URL
 
 const TIER2_KEYWORDS = ["Keep", "Stronghold", "Halls of the Dead", "Tree of Ages", "Tier 2", "Tech 2"];
 const TIER3_KEYWORDS = ["Castle", "Fortress", "Black Citadel", "Tree of Eternity", "Tier 3", "Tech 3"];
@@ -25,12 +28,22 @@ const SPECIAL_SOUNDS = {
     'tier2': 'warcraft/quest done.mp3', // Fallback defaults
     'tier3': 'warcraft/quest done.mp3',
     'hero': 'warcraft/ready to serve.mp3',
-    'default': 'warcraft/ping.mp3' // Note: ping.mp3 was not in the list but kept for logic
+    'default': 'warcraft/ping.mp3'
 };
 
 function playSound(path, volume = 0.5) {
     try {
-        const audio = new Audio(SOUND_BASE_PATH + path);
+        let finalUrl = '';
+        if (path.startsWith('custom/')) {
+            const fileName = path.replace('custom/', '');
+            finalUrl = CUSTOM_SOUND_OBJECTS[fileName];
+        } else {
+            finalUrl = SOUND_BASE_PATH + path;
+        }
+
+        if (!finalUrl) return;
+
+        const audio = new Audio(finalUrl);
         audio.volume = volume;
         audio.play().catch(e => console.warn("Playback failed:", e));
     } catch (err) {
@@ -1193,6 +1206,42 @@ addRowBtn.addEventListener('click', () => {
     const firstIcon = RACE_ENTITIES_CATEGORIZED[savedRace]['Buildings'][0];
     editorRows.appendChild(createRow({time: 0, gold: 0, wood: 0, food: 0, foodMax: 0, action: 'New Action', icons: [firstIcon]}));
 });
+// --- Custom Sounds Loader ---
+const loadCustomSoundsBtn = document.getElementById('loadCustomSoundsBtn');
+const customSoundInput = document.getElementById('customSoundInput');
+
+if (loadCustomSoundsBtn && customSoundInput) {
+    loadCustomSoundsBtn.addEventListener('click', () => {
+        customSoundInput.click();
+    });
+
+    customSoundInput.addEventListener('change', (e) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        let newCustomSounds = [];
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const name = file.name;
+            
+            // Only accept audio
+            if (/\.(mp3|wav|ogg|aac)$/i.test(name)) {
+                let cleanName = name.replace(/\.(mp3|wav|ogg|aac)$/i, '');
+                newCustomSounds.push(cleanName);
+                
+                // Revoke old URL if exists to save memory
+                if (CUSTOM_SOUND_OBJECTS[cleanName]) URL.revokeObjectURL(CUSTOM_SOUND_OBJECTS[cleanName]);
+                CUSTOM_SOUND_OBJECTS[cleanName] = URL.createObjectURL(file);
+            }
+        }
+
+        if (newCustomSounds.length > 0) {
+            SOUND_CATALOG.Custom = newCustomSounds.sort();
+            alert(`${newCustomSounds.length} Custom Sounds geladen!`);
+            if (editorModal.classList.contains('active')) renderEditor();
+        }
+    });
+}
 
 saveEditorBtn.addEventListener('click', () => {
     const newOrder = [];
