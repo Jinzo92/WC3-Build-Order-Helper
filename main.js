@@ -120,51 +120,62 @@ const ICON_MAPPING = {
     "Druid of the Talon Master Training": "DOTMasterTraining",
     
     // Items Naming Fixes
-    "Anti-magic Potion": "Anti-magic Potion",
-    "Book of the Dead": "BookOfTheDead",
-    "Boots of Speed": "BootsOfSpeed",
-    "Circlet of Nobility": "CircletofNobility",
-    "Claws of Attack": "ClawsOfAttack",
-    "Cloak of Flames": "CloakOfFlames",
-    "Cloak of Shadows": "Cloakofshadows",
-    "Dust of Appearance": "DustOfAppearance",
-    "Gloves of Speed": "Glovesofspeed",
-    "Healing Salve": "HealingSalve",
-    "Healing Ward": "HealingWard",
-    "Ivory Tower": "IvoryTower",
-    "Gold Mine": "Goldmine",
-    "Gold": "Gold",
-    "Wood": "Wood",
-    "Spacer": "Blank",
-    "Arrow Right": "ArrowRight",
-    "Lesser Clarity Potion": "LesserClarityPotion",
-    "Lesser Invisibility": "LesserInvisibility",
-    "Mantle of Intelligence": "MantleOfIntelligence",
-    "Mechanical Critter": "MechanicalCritter",
-    "Moon Stone": "MoonStone",
-    "Orb of Corruption": "OrbOfCorruption",
-    "Orb of Lightning": "OrbOfLightning",
-    "Orb of Venom": "OrbOfVenom",
-    "Orb of Slow": "OrbofSlowness",
-    "Periapt of Vitality": "PeriaptofVitality",
-    "Potion of Healing": "PotionofHealing",
-    "Potion of Lesser Invulnerability": "BTNPotionofLesserInvulneralbility",
-    "Potion of Mana": "PotionofMana",
-    "Ritual Dagger": "RitualDagger",
-    "Rod of Necromancy": "RodOfNecromancy",
-    "Sacrificial Skull": "SacrificialSkull",
-    "Scroll of Healing": "ScrollOfHealing",
-    "Scroll of Protection": "ScrollOfProtection",
-    "Scroll of Regeneration": "ScrollOfRegeneration",
-    "Scroll of Speed": "ScrollOfSpeed",
-    "Scroll of Town Portal": "ScrollofTownPortal",
-    "Staff of Preservation": "StaffOfPreservation",
-    "Staff of Sanctuary": "StaffOfSanctuary",
-    "Staff of Teleportation": "StaffOfTeleportation",
-    "Tiny Great Hall": "BTNTinyGreatHall",
-    "Tome of Retraining": "TomeOfRetraining",
-    "Wand of Negation": "WandOfNegation"
+    "Anti-magic Potion": "antimagicpotion",
+    "Book of the Dead": "bookofthedead",
+    "Boots of Speed": "bootsofspeed",
+    "Circlet of Nobility": "circletofnobility",
+    "Claws of Attack": "clawsofattack",
+    "Cloak of Flames": "cloakofflames",
+    "Cloak of Shadows": "cloakofshadows",
+    "Dust of Appearance": "dustofappearance",
+    "Gloves of Speed": "glovesofspeed",
+    "Healing Salve": "healingsalve",
+    "Healing Ward": "healingward",
+    "Ivory Tower": "ivorytower",
+    "Lesser Clarity Potion": "lesserclaritypotion",
+    "Lesser Invisibility": "lesserinvisibility",
+    "Mantle of Intelligence": "mantleofintelligence",
+    "Mechanical Critter": "mechanicalcritter",
+    "Moon Stone": "moonstone",
+    "Orb of Corruption": "orbofcorruption",
+    "Orb of Lightning": "orboflightning",
+    "Orb of Venom": "orbofvenom",
+    "Orb of Slow": "orbofslowness",
+    "Periapt of Vitality": "periaptofvitality",
+    "Potion of Healing": "potionofhealing",
+    "Potion of Lesser Invulnerability": "potionoflesserinvulneralbility",
+    "Potion of Mana": "potionofmana",
+    "Ritual Dagger": "ritualdagger",
+    "Rod of Necromancy": "rodofnecromancy",
+    "Sacrificial Skull": "sacrificialskull",
+    "Scroll of Healing": "scrollofhealing",
+    "Scroll of Protection": "scrollofprotection",
+    "Scroll of Regeneration": "scrollofregeneration",
+    "Scroll of Speed": "scrollofspeed",
+    "Scroll of Town Portal": "scrolloftownportal",
+    "Staff of Preservation": "staffofpreservation",
+    "Staff of Sanctuary": "staffofsanctuary",
+    "Staff of Teleportation": "staffofteleportation",
+    "Tiny Great Hall": "tinygreathall",
+    "Tome of Retraining": "tomeofretraining",
+    "Wand of Negation": "wandofnegation",
+    "Gold Mine": "goldmine",
+    "Gold": "gold",
+    "Wood": "wood",
+    "Spacer": "blank",
+    "Arrow Right": "arrowright"
 };
+
+const ALL_ITEMS = [
+    "Anti-magic Potion", "Book of the Dead", "Boots of Speed", "Circlet of Nobility", "Claws of Attack",
+    "Cloak of Flames", "Cloak of Shadows", "Dust of Appearance", "Gloves of Speed", "Healing Salve",
+    "Healing Ward", "Ivory Tower", "Lesser Clarity Potion", "Lesser Invisibility", "Mantle of Intelligence",
+    "Mechanical Critter", "Moon Stone", "Orb of Corruption", "Orb of Lightning", "Orb of Slow",
+    "Orb of Venom", "Periapt of Vitality", "Potion of Healing", "Potion of Lesser Invulnerability", "Potion of Mana",
+    "Ritual Dagger", "Rod of Necromancy", "Sacrificial Skull", "Scroll of Healing", "Scroll of Protection",
+    "Scroll of Regeneration", "Scroll of Speed", "Scroll of Town Portal", "Staff of Preservation", "Staff of Sanctuary",
+    "Staff of Teleportation", "Tiny Great Hall", "Tome of Retraining", "Wand of Negation"
+];
 
 const RACE_ENTITIES_CATEGORIZED = {
     human: {
@@ -192,10 +203,7 @@ const RACE_ENTITIES_CATEGORIZED = {
         "Neutral Units": [
             "Forest Troll Berserker", "Forest Troll Shadow Priest", "Goblin Sapper", "Goblin Shredder", "Goblin Zeppelin", "Mud Golem", "Ogre Mauler"
         ],
-        "Items": [
-            "Scroll of Town Portal", "Potion of Healing", "Potion of Mana", "Scroll of Regeneration", "Lesser Clarity Potion", "Ivory Tower", "Orb of Slow", "Staff of Sanctuary", "Mechanical Critter", "Tiny Great Hall",
-            "Scroll of Healing", "Scroll of Protection", "Boots of Speed", "Dust of Appearance", "Potion of Lesser Invulnerability", "Staff of Teleportation", "Tome of Retraining", "Circlet of Nobility", "Periapt of Vitality", "Wand of Negation"
-        ],
+        "Items": ALL_ITEMS,
         "Resources": [
             "Gold Mine", "Gold", "Wood", "Spacer", "Arrow Right"
         ],
@@ -228,10 +236,7 @@ const RACE_ENTITIES_CATEGORIZED = {
         "Neutral Units": [
             "Forest Troll Berserker", "Forest Troll Shadow Priest", "Goblin Sapper", "Goblin Shredder", "Goblin Zeppelin", "Mud Golem", "Ogre Mauler"
         ],
-        "Items": [
-            "Scroll of Town Portal", "Healing Salve", "Lesser Clarity Potion", "Scroll of Speed", "Orb of Lightning", "Tiny Great Hall",
-            "Potion of Healing", "Potion of Mana", "Scroll of Healing", "Scroll of Protection", "Boots of Speed", "Dust of Appearance", "Potion of Lesser Invulnerability", "Staff of Teleportation", "Tome of Retraining", "Circlet of Nobility", "Periapt of Vitality", "Wand of Negation"
-        ],
+        "Items": ALL_ITEMS,
         "Resources": [
             "Gold Mine", "Gold", "Wood", "Spacer", "Arrow Right"
         ],
@@ -263,10 +268,7 @@ const RACE_ENTITIES_CATEGORIZED = {
         "Neutral Units": [
             "Forest Troll Berserker", "Forest Troll Shadow Priest", "Goblin Sapper", "Goblin Shredder", "Goblin Zeppelin", "Mud Golem", "Ogre Mauler"
         ],
-        "Items": [
-            "Scroll of Town Portal", "Rod of Necromancy", "Sacrificial Skull", "Ritual Dagger", "Dust of Appearance", "Orb of Corruption",
-            "Potion of Healing", "Potion of Mana", "Scroll of Healing", "Scroll of Protection", "Boots of Speed", "Potion of Lesser Invulnerability", "Staff of Teleportation", "Tome of Retraining", "Circlet of Nobility", "Periapt of Vitality", "Wand of Negation"
-        ],
+        "Items": ALL_ITEMS,
         "Resources": [
             "Gold Mine", "Gold", "Wood", "Spacer", "Arrow Right"
         ],
@@ -298,10 +300,7 @@ const RACE_ENTITIES_CATEGORIZED = {
         "Neutral Units": [
             "Forest Troll Berserker", "Forest Troll Shadow Priest", "Goblin Sapper", "Goblin Shredder", "Goblin Zeppelin", "Mud Golem", "Ogre Mauler"
         ],
-        "Items": [
-            "Scroll of Town Portal", "Moon Stone", "Lesser Clarity Potion", "Dust of Appearance", "Staff of Preservation", "Orb of Venom", "Anti-magic Potion",
-            "Potion of Healing", "Potion of Mana", "Scroll of Healing", "Scroll of Protection", "Boots of Speed", "Potion of Lesser Invulnerability", "Staff of Teleportation", "Tome of Retraining", "Circlet of Nobility", "Periapt of Vitality", "Wand of Negation"
-        ],
+        "Items": ALL_ITEMS,
         "Resources": [
             "Gold Mine", "Gold", "Wood", "Spacer"
         ],
