@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warcraft 3 Build Order Helper</title>
+    <meta name="description" content="Ein dynamisches Tool zur Anzeige von Warcraft 3 Build Orders in Echtzeit.">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <div class="main-layout">
+            <div class="left-column">
+                <header>
+            <div class="header-titles">
+                <h1>Build Order Helper</h1>
+                
+                <div class="custom-dropdown" id="raceDropdown">
+                    <div class="dropdown-selected" id="dropdownSelected">
+                        <div class="selected-content">
+                            <img src="icons/Human.png" alt="" class="race-icon" onerror="this.style.display='none'">
+                            <span class="race-text" id="selectedRaceText">Human</span>
+                        </div>
+                        <span class="dropdown-arrow">▼</span>
+                    </div>
+                    <div class="dropdown-options" id="dropdownOptions">
+                        <div class="dropdown-option" data-value="human" data-text="Human" data-img="icons/Human.png">
+                            <img src="icons/Human.png" alt="" class="race-icon" onerror="this.style.display='none'">
+                            <span>Human</span>
+                        </div>
+                        <div class="dropdown-option" data-value="orc" data-text="Orc" data-img="icons/Orc.png">
+                            <img src="icons/Orc.png" alt="" class="race-icon" onerror="this.style.display='none'">
+                            <span>Orc</span>
+                        </div>
+                        <div class="dropdown-option" data-value="undead" data-text="Undead" data-img="icons/Undead.png">
+                            <img src="icons/Undead.png" alt="" class="race-icon" onerror="this.style.display='none'">
+                            <span>Undead</span>
+                        </div>
+                        <div class="dropdown-option" data-value="nightelf" data-text="Night Elf" data-img="icons/Nightelf.png">
+                            <img src="icons/Nightelf.png" alt="" class="race-icon" onerror="this.style.display='none'">
+                            <span>Night Elf</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="timer-display" id="timerDisplay">00:00</div>
+            
+            <div class="controls">
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <button id="playPauseBtn" class="btn primary-btn">
+                        <span id="playIcon">▶</span> Start
+                    </button>
+                    <div class="hotkey-config" title="Set hotkey for Start/Pause">
+                        <span class="hotkey-label">Key:</span>
+                        <button class="hotkey-btn" id="hotkeyBtn">Space</button>
+                    </div>
+                </div>
+                <button id="resetBtn" class="btn secondary-btn">
+                    <span>↺</span> Reset
+                </button>
+                <button id="editBtn" class="btn secondary-btn">
+                    <span>✏️</span> Editor
+                </button>
+            </div>
+        </header>
+
+        <div class="play-area">
+            <div class="made-by-wrapper" style="text-align: right; margin-bottom: 8px;">
+                <span class="made-by" style="font-style: italic; color: rgba(255,255,255,0.4); font-size: 0.95rem; font-family: 'Outfit', sans-serif;">made by Jinzo | V0.91</span>
+            </div>
+            <main class="timeline-wrapper">
+                    <div class="timeline-window" id="timelineWindow">
+                        <div class="playhead" id="playhead"></div>
+                        <div class="timeline-track" id="timelineTrack">
+                            <!-- Events werden durch JS generiert -->
+                        </div>
+                    </div>
+                </main>
+                
+                <div class="current-action-display">
+                    <h2>Upcoming Action</h2>
+                    <div class="upcoming-action" id="upcomingAction" data-last-index="">
+                        Ready for game
+                    </div>
+                </div>
+                </div>
+            </div>
+
+            <aside class="history-sidebar">
+                <h3>Build Order Log</h3>
+                <div class="history-list" id="historyList">
+                    <!-- History injected by JS -->
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Modal for Editor -->
+    <div id="editorModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 1200px;">
+            <div class="modal-header">
+                <h2>Build Order Editor</h2>
+                <button id="closeModalBtn" class="icon-btn">❌</button>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px 15px; background: rgba(0,0,0,0.2); border-radius: 10px; border: 1px solid var(--border-color);">
+                <label style="color: var(--text-muted); font-size: 0.9rem; white-space: nowrap;">⏱ Start Delay (sec):</label>
+                <input type="number" id="delayInput" class="editor-input" value="5" min="0" max="30" style="width: 80px; padding: 6px 10px; font-size: 0.95rem;">
+                <span style="color: var(--text-muted); font-size: 0.8rem;">Timer counts down before 00:00</span>
+            </div>
+            <div class="modal-actions" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                <div style="display: flex; gap: 10px;">
+                    <button id="exportBtn" class="btn secondary-btn small-btn">⬇️ Export (JSON)</button>
+                    <label for="importFile" class="btn secondary-btn small-btn" style="cursor:pointer;">⬆️ Import (JSON)</label>
+                    <input type="file" id="importFile" accept=".json" style="display: none;">
+                </div>
+                <div class="bo-folder-wrapper" style="display:flex; align-items:center; gap:5px; flex-wrap: wrap;">
+                    <button id="loadFolderBtn" class="btn secondary-btn small-btn" title="Select the Build Orders folder">
+                        <span>📂</span> Set Build Order Folder
+                    </button>
+                    <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;">
+                    
+                    <button id="loadCustomIconsBtn" class="btn secondary-btn small-btn" title="Select your Custom Icons folder">
+                        <span>🖼️</span> Set Custom Icons
+                    </button>
+                    <input type="file" id="customIconInput" webkitdirectory directory multiple style="display: none;">
+
+                    <select id="boSelect" class="editor-input" style="width: 170px; display: none; padding: 6px 10px; font-size: 0.9rem;">
+                        <option value="">-- Select Build Order --</option>
+                    </select>
+                </div>
+            </div>
+            <div class="editor-table-header">
+                <div title="Time in Timeline">Time</div>
+                <div title="Required Gold"><img src="icons/Gold.png" onerror="this.style.display='none'" style="height: 20px; vertical-align: middle;"> Gold</div>
+                <div title="Required Wood"><img src="icons/Wood.png" onerror="this.style.display='none'" style="height: 20px; vertical-align: middle;"> Wood</div>
+                <div title="Supply Current/Cost">Supply Spend</div>
+                <div title="Supply Max Limit">Supply Max</div>
+                <div>Action Text</div>
+                <div>Icon</div>
+                <div></div>
+            </div>
+            <div class="editor-rows" id="editorRows">
+                <!-- Rows injected by JS -->
+            </div>
+            <div class="modal-footer">
+                <button id="addRowBtn" class="btn secondary-btn">+ Add Row</button>
+                <button id="resetEditorBtn" class="btn secondary-btn" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);">🗑️ Reset All</button>
+                <button id="saveEditorBtn" class="btn primary-btn">Save & Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>

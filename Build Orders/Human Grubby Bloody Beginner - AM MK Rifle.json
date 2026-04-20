@@ -1,0 +1,251 @@
+[
+  {
+    "time": 0,
+    "gold": 0,
+    "wood": 0,
+    "food": 5,
+    "foodMax": 12,
+    "action": "Train 2 Worker, 1 builds Altar ->4 to Gold",
+    "icons": [
+      "Peasant",
+      "Peasant",
+      "Spacer",
+      "Altar of Kings"
+    ]
+  },
+  {
+    "time": 12,
+    "gold": 0,
+    "wood": 0,
+    "food": 6,
+    "foodMax": 12,
+    "action": "1. new builds Barracks (farm spacing)",
+    "icons": [
+      "Barracks",
+      "Peasant"
+    ]
+  },
+  {
+    "time": 25,
+    "gold": 0,
+    "wood": 0,
+    "food": 7,
+    "foodMax": 12,
+    "action": "Farm -> Leave opening",
+    "icons": [
+      "Farm",
+      "Peasant"
+    ]
+  },
+  {
+    "time": 37,
+    "gold": 0,
+    "wood": 0,
+    "food": 8,
+    "foodMax": 12,
+    "action": "2. Farm -> Builders too Wood",
+    "icons": [
+      "Farm",
+      "Wood"
+    ]
+  },
+  {
+    "time": 50,
+    "gold": 0,
+    "wood": 0,
+    "food": 9,
+    "foodMax": 12,
+    "action": "Fill up Goldmine",
+    "icons": [
+      "Gold Mine"
+    ]
+  },
+  {
+    "time": 55,
+    "gold": 0,
+    "wood": 0,
+    "food": 10,
+    "foodMax": 18,
+    "action": "Train AM -> 5-9th Worker to wood",
+    "icons": [
+      "Archmage",
+      "Spacer",
+      "Peasant",
+      "Wood"
+    ]
+  },
+  {
+    "time": 60,
+    "gold": 0,
+    "wood": 0,
+    "food": 16,
+    "foodMax": 18,
+    "action": "Barrak finished -> Footy",
+    "icons": [
+      "Footman"
+    ]
+  },
+  {
+    "time": 65,
+    "gold": 0,
+    "wood": 0,
+    "food": 19,
+    "foodMax": 24,
+    "action": "Build Tower + Controll 4 Wood Worker",
+    "icons": [
+      "Scout Tower",
+      "Peasant"
+    ]
+  },
+  {
+    "time": 75,
+    "gold": 0,
+    "wood": 0,
+    "food": 19,
+    "foodMax": 24,
+    "action": "train footy",
+    "icons": [
+      "Footman"
+    ]
+  },
+  {
+    "time": 90,
+    "gold": 0,
+    "wood": 0,
+    "food": 21,
+    "foodMax": 24,
+    "action": "3.Farm -> upgrade Tower",
+    "icons": [
+      "Farm",
+      "Arcane Tower"
+    ]
+  },
+  {
+    "time": 100,
+    "gold": 0,
+    "wood": 0,
+    "food": 21,
+    "foodMax": 24,
+    "action": "8. wood worker -> wood group to militia",
+    "icons": [
+      "Militia"
+    ]
+  },
+  {
+    "time": 110,
+    "gold": 0,
+    "wood": 0,
+    "food": 22,
+    "foodMax": 24,
+    "action": "AM, 2footy and 4 militia ->creep",
+    "icons": [
+      "Archmage",
+      "Footman",
+      "Footman",
+      "Militia",
+      "Militia",
+      "Militia",
+      "Militia"
+    ]
+  },
+  {
+    "time": 120,
+    "gold": 0,
+    "wood": 0,
+    "food": 24,
+    "foodMax": 30,
+    "action": "4. footy + 9. wood worker -> CREEP",
+    "icons": [
+      "Footman",
+      "Peasant",
+      "Arrow Right",
+      "Ogre Mauler"
+    ]
+  },
+  {
+    "time": 140,
+    "gold": 0,
+    "wood": 0,
+    "food": 27,
+    "foodMax": 30,
+    "action": "T2",
+    "icons": [
+      "Keep"
+    ]
+  },
+  {
+    "time": 170,
+    "gold": 0,
+    "wood": 0,
+    "food": 27,
+    "foodMax": 30,
+    "action": "Blacksmith + 2x Farm",
+    "icons": [
+      "Blacksmith",
+      "Farm",
+      "Farm"
+    ]
+  },
+  {
+    "time": 185,
+    "gold": 0,
+    "wood": 0,
+    "food": 29,
+    "foodMax": 30,
+    "action": "Shop -> protec by tower!!!!",
+    "icons": [
+      "Arcane Vault",
+      "Arcane Tower"
+    ]
+  },
+  {
+    "time": 200,
+    "gold": 0,
+    "wood": 0,
+    "food": 29,
+    "foodMax": 42,
+    "action": "train 2x Rifle",
+    "icons": [
+      "Rifleman",
+      "Rifleman"
+    ]
+  },
+  {
+    "time": 260,
+    "gold": 0,
+    "wood": 0,
+    "food": 34,
+    "foodMax": 42,
+    "action": "MK + Sanktum",
+    "icons": [
+      "Mountain King",
+      "Arcane Sanctum"
+    ]
+  },
+  {
+    "time": 280,
+    "gold": 0,
+    "wood": 0,
+    "food": 40,
+    "foodMax": 42,
+    "action": "Maintain Supply 6 - 12 free!",
+    "icons": [
+      "Farm",
+      "Farm"
+    ]
+  },
+  {
+    "time": 300,
+    "gold": 0,
+    "wood": 0,
+    "food": 45,
+    "foodMax": 50,
+    "action": "Upgrades! + Rifles + Priest",
+    "icons": [
+      "Long Rifles",
+      "Gunpowder",
+      "Rifleman",
+      "Priest"
+    ]
+  }
+]

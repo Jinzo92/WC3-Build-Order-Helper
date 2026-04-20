@@ -1,0 +1,202 @@
+[
+  {
+    "time": 0,
+    "gold": 0,
+    "wood": 0,
+    "food": 5,
+    "foodMax": 10,
+    "action": "train 2",
+    "icons": [
+      "Acolyte",
+      "Acolyte"
+    ]
+  },
+  {
+    "time": 5,
+    "gold": 0,
+    "wood": 0,
+    "food": 6,
+    "foodMax": 10,
+    "action": "Altar+Zigg",
+    "icons": [
+      "Altar of Darkness",
+      "Ziggurat"
+    ]
+  },
+  {
+    "time": 10,
+    "gold": 0,
+    "wood": 0,
+    "food": 7,
+    "foodMax": 10,
+    "action": "build Crypt -> gold",
+    "icons": [
+      "Crypt"
+    ]
+  },
+  {
+    "time": 15,
+    "gold": 0,
+    "wood": 0,
+    "food": 7,
+    "foodMax": 10,
+    "action": "6. aco -> Shop -> scout",
+    "icons": [
+      "Tomb of Relics"
+    ]
+  },
+  {
+    "time": 20,
+    "gold": 0,
+    "wood": 0,
+    "food": 8,
+    "foodMax": 20,
+    "action": "DK -> buy Rod",
+    "icons": [
+      "Death Knight"
+    ]
+  },
+  {
+    "time": 25,
+    "gold": 0,
+    "wood": 0,
+    "food": 8,
+    "foodMax": 20,
+    "action": "DK harras -> kill sheep -> summon skellis",
+    "icons": [
+      "Death Knight"
+    ]
+  },
+  {
+    "time": 30,
+    "gold": 215,
+    "wood": 0,
+    "food": 13,
+    "foodMax": 20,
+    "action": "Build Graveyard",
+    "icons": [
+      "Graveyard"
+    ]
+  },
+  {
+    "time": 35,
+    "gold": 0,
+    "wood": 0,
+    "food": 13,
+    "foodMax": 20,
+    "action": "Crypt finish -> 2x Ghouls",
+    "icons": [
+      "Ghoul"
+    ]
+  },
+  {
+    "time": 40,
+    "gold": 315,
+    "wood": 195,
+    "food": 17,
+    "foodMax": 20,
+    "action": "upgrade to HotD",
+    "icons": [
+      "Halls of the Dead"
+    ]
+  },
+  {
+    "time": 45,
+    "gold": 0,
+    "wood": 0,
+    "food": 17,
+    "foodMax": 20,
+    "action": "Nerubian -> 2.Zig ->1. Crypt Fiendg",
+    "icons": [
+      "Nerubian Tower"
+    ]
+  },
+  {
+    "time": 50,
+    "gold": 0,
+    "wood": 0,
+    "food": 20,
+    "foodMax": 30,
+    "action": "2. Crypt Fiend -> 2. Rod",
+    "icons": [
+      "Crypt Fiend"
+    ]
+  },
+  {
+    "time": 55,
+    "gold": 0,
+    "wood": 0,
+    "food": 23,
+    "foodMax": 30,
+    "action": "3.Zigg -> 3.Crypt Fiend -> 4.Ghoul",
+    "icons": [
+      "Ziggurat"
+    ]
+  },
+  {
+    "time": 60,
+    "gold": 0,
+    "wood": 0,
+    "food": 28,
+    "foodMax": 40,
+    "action": "Pit Lord -> Slaughter, Temple otD",
+    "icons": [
+      "Web"
+    ]
+  },
+  {
+    "time": 65,
+    "gold": 0,
+    "wood": 0,
+    "food": 28,
+    "foodMax": 40,
+    "action": "research Fiend Burrow",
+    "icons": [
+      "Web"
+    ]
+  },
+  {
+    "time": 70,
+    "gold": 0,
+    "wood": 0,
+    "food": 33,
+    "foodMax": 40,
+    "action": "Statue + Necro -> necro adept",
+    "icons": [
+      "Unholy Armor"
+    ]
+  },
+  {
+    "time": 75,
+    "gold": 0,
+    "wood": 0,
+    "food": 38,
+    "foodMax": 40,
+    "action": "4. Zigg, 2. Statue +Fiend",
+    "icons": [
+      "Obsidian Statue"
+    ]
+  },
+  {
+    "time": 80,
+    "gold": 0,
+    "wood": 0,
+    "food": 38,
+    "foodMax": 40,
+    "action": "Necros",
+    "icons": [
+      "Necromancer"
+    ]
+  },
+  {
+    "time": 85,
+    "gold": 0,
+    "wood": 0,
+    "food": 40,
+    "foodMax": 50,
+    "action": "Get as Needed: T3, Skelly mastery, Web, Expo",
+    "icons": [
+      "Altar of Darkness"
+    ]
+  }
+]
