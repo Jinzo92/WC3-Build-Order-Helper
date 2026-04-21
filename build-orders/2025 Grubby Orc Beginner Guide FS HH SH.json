@@ -1,0 +1,317 @@
+[
+  {
+    "time": 5,
+    "gold": 0,
+    "wood": 0,
+    "food": 5,
+    "foodMax": 11,
+    "action": "Train 2 Peons, 4 to gold, 1 builds Altar",
+    "icons": [
+      "Peon",
+      "Peon",
+      "Spacer",
+      "Peon",
+      "Arrow Right",
+      "Gold Mine",
+      "Spacer",
+      "Altar of Storms"
+    ],
+    "useSound": false,
+    "sound": "warcraft/aaaaahhhh.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 20,
+    "gold": 0,
+    "wood": 0,
+    "food": 6,
+    "foodMax": 11,
+    "action": "1. Peon -> Burrow",
+    "icons": [
+      "Burrow"
+    ],
+    "useSound": false,
+    "sound": "warcraft/aaaaahhhh.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 35,
+    "gold": 0,
+    "wood": 0,
+    "food": 7,
+    "foodMax": 11,
+    "action": "2. Peon -> Gold",
+    "icons": [
+      "Peon",
+      "Arrow Right",
+      "Gold Mine"
+    ],
+    "useSound": false,
+    "sound": "warcraft/aaaaahhhh.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 50,
+    "gold": 0,
+    "wood": 0,
+    "food": 8,
+    "foodMax": 11,
+    "action": "3. Peon -> Warmill against Trees",
+    "icons": [
+      "Peon",
+      "Arrow Right",
+      "War Mill",
+      "Wood"
+    ],
+    "useSound": false,
+    "sound": "warcraft/aaaaahhhh.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 55,
+    "gold": 0,
+    "wood": 0,
+    "food": 9,
+    "foodMax": 11,
+    "action": "halt Peon production after this one",
+    "icons": [
+      "Peon"
+    ],
+    "useSound": false,
+    "sound": "warcraft/work work.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 65,
+    "gold": 0,
+    "wood": 0,
+    "food": 9,
+    "foodMax": 11,
+    "action": "4. Peon -> Barracks",
+    "icons": [
+      "Peon",
+      "Arrow Right",
+      "Barracks"
+    ],
+    "useSound": false,
+    "sound": "warcraft/aaaaahhhh.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 70,
+    "gold": 0,
+    "wood": 0,
+    "food": 9,
+    "foodMax": 21,
+    "action": "Altar finises -> train Farseer",
+    "icons": [
+      "Far Seer"
+    ],
+    "useSound": true,
+    "sound": "voice/train hero.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 75,
+    "gold": 0,
+    "wood": 0,
+    "food": 14,
+    "foodMax": 21,
+    "action": "resume Peon production!",
+    "icons": [
+      "Peon"
+    ],
+    "useSound": true,
+    "sound": "voice/check worker.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 95,
+    "gold": 0,
+    "wood": 0,
+    "food": 16,
+    "foodMax": 21,
+    "action": "5., 6. and 7. peon to Wood",
+    "icons": [
+      "Peon",
+      "Peon",
+      "Peon",
+      "Arrow Right",
+      "Wood"
+    ],
+    "useSound": false,
+    "sound": "warcraft/aaaaahhhh.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 110,
+    "gold": 0,
+    "wood": 0,
+    "food": 17,
+    "foodMax": 21,
+    "action": "build 2. Burrrow -> Train 2 Headhunter",
+    "icons": [
+      "Burrow",
+      "Spacer",
+      "Headhunter",
+      "Headhunter"
+    ],
+    "useSound": true,
+    "sound": "voice/train units.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 165,
+    "gold": 0,
+    "wood": 0,
+    "food": 21,
+    "foodMax": 31,
+    "action": "Tech 2",
+    "icons": [
+      "Stronghold"
+    ],
+    "useSound": true,
+    "sound": "voice/tech 2.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 175,
+    "gold": 0,
+    "wood": 0,
+    "food": 21,
+    "foodMax": 31,
+    "action": "train 4 more Headhunters (6 total)",
+    "icons": [
+      "Headhunter",
+      "Headhunter",
+      "Headhunter",
+      "Headhunter"
+    ],
+    "useSound": true,
+    "sound": "voice/train units.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 220,
+    "gold": 0,
+    "wood": 0,
+    "food": 27,
+    "foodMax": 31,
+    "action": "3. Burrow -> then Voodoo Lounge",
+    "icons": [
+      "Burrow",
+      "Spacer",
+      "Voodoo Lounge"
+    ],
+    "useSound": false,
+    "sound": "warcraft/aaaaahhhh.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 306,
+    "gold": 0,
+    "wood": 0,
+    "food": 29,
+    "foodMax": 41,
+    "action": "T2 finish -> train SH",
+    "icons": [
+      "Great Hall"
+    ],
+    "useSound": true,
+    "sound": "voice/train hero.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 312,
+    "gold": 0,
+    "wood": 0,
+    "food": 0,
+    "foodMax": 0,
+    "action": "Heal salve, Clarity, Speed Scroll",
+    "icons": [
+      "Healing Salve",
+      "Lesser Clarity Potion",
+      "Scroll of Speed"
+    ],
+    "useSound": false,
+    "sound": "warcraft/aaaaahhhh.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 322,
+    "gold": 0,
+    "wood": 0,
+    "food": 34,
+    "foodMax": 41,
+    "action": "Tech 3",
+    "icons": [
+      "Fortress"
+    ],
+    "useSound": true,
+    "sound": "voice/tech 3.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 327,
+    "gold": 0,
+    "wood": 0,
+    "food": 34,
+    "foodMax": 41,
+    "action": "build Beastriary, research Troll regen -> 7. Headhunter",
+    "icons": [
+      "Beastiary",
+      "Troll Regeneration",
+      "Headhunter"
+    ],
+    "useSound": true,
+    "sound": "voice/base.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 418,
+    "gold": 0,
+    "wood": 0,
+    "food": 36,
+    "foodMax": 41,
+    "action": "train Kodo -> 4. Burrow",
+    "icons": [
+      "Kodo Beast",
+      "Spacer",
+      "Burrow"
+    ],
+    "useSound": true,
+    "sound": "voice/base.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 465,
+    "gold": 0,
+    "wood": 0,
+    "food": 40,
+    "foodMax": 41,
+    "action": "T3 finish -> start Troll Berserker and Drums upgrade",
+    "icons": [
+      "Berserker Upgrade",
+      "War Drums"
+    ],
+    "useSound": true,
+    "sound": "voice/tech 3.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 480,
+    "gold": 0,
+    "wood": 0,
+    "food": 0,
+    "foodMax": 0,
+    "action": "purchase Orb, attack + Defend Upgrades for Head Hunters",
+    "icons": [
+      "Orb of Lightning",
+      "Steel Ranged Weapons",
+      "Steel Armor"
+    ],
+    "useSound": true,
+    "sound": "voice/buy items.mp3",
+    "hasPlayedSound": false
+  }
+]

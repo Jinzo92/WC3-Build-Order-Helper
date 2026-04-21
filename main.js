@@ -14,8 +14,8 @@ const SOUND_CATALOG = {
     "Voice": [
         "base.mp3", "be happy.mp3", "buy items.mp3", "check worker.mp3", "creep.mp3", 
         "defend base.mp3", "expand.mp3", "fix army.mp3", "harass.mp3", "level up.mp3", 
-        "positioning.mp3", "scout enemy.mp3", "speech.mp3", "t2 buildings.mp3", 
-        "t3 buildings.mp3", "tech 3.mp3", "train hero.mp3", "train units.mp3", 
+        "positioning.mp3", "scout enemy.mp3", "t2 buildings.mp3", 
+        "t3 buildings.mp3", "tech 2.mp3", "tech 3.mp3", "train hero.mp3", "train units.mp3", 
         "use items.mp3"
     ],
     "Other": [
@@ -26,17 +26,6 @@ const SOUND_CATALOG = {
 };
 
 let CUSTOM_SOUND_OBJECTS = {}; // Maps name to Blob URL
-
-const TIER2_KEYWORDS = ["Keep", "Stronghold", "Halls of the Dead", "Tree of Ages", "Tier 2", "Tech 2"];
-const TIER3_KEYWORDS = ["Castle", "Fortress", "Black Citadel", "Tree of Eternity", "Tier 3", "Tech 3"];
-const HERO_KEYWORDS = ["Altars", "Train Archmage", "Train Paladin", "Train Mountain King", "Train Blood Mage", "Train Blademaster", "Train Far Seer", "Train Tauren Chieftain", "Train Shadow Hunter", "Train Death Knight", "Train Lich", "Train Dreadlord", "Train Crypt Lord", "Train Demon Hunter", "Train Keeper", "Train Priestess", "Train Warden"];
-
-const SPECIAL_SOUNDS = {
-    'tier2': 'warcraft/quest done.mp3', // Fallback defaults
-    'tier3': 'warcraft/quest done.mp3',
-    'hero': 'warcraft/ready to serve.mp3',
-    'default': 'warcraft/ping.mp3'
-};
 
 function playSound(path, volume = 0.5) {
     try {
@@ -61,18 +50,7 @@ function playSound(path, volume = 0.5) {
 function playActionSound(actionText, customSound = null) {
     if (customSound) {
         playSound(customSound, 0.6);
-        return;
     }
-    
-    // Auto-detection logic (fallback)
-    const lowerAction = actionText.toLowerCase();
-    let soundFile = null;
-    
-    if (TIER2_KEYWORDS.some(k => lowerAction.includes(k.toLowerCase()))) soundFile = SPECIAL_SOUNDS['tier2'];
-    else if (TIER3_KEYWORDS.some(k => lowerAction.includes(k.toLowerCase()))) soundFile = SPECIAL_SOUNDS['tier3'];
-    else if (HERO_KEYWORDS.some(k => lowerAction.includes(k.toLowerCase()))) soundFile = SPECIAL_SOUNDS['hero'];
-
-    if (soundFile) playSound(soundFile, 0.4);
 }
 // ----------------------------------
 
@@ -302,7 +280,7 @@ const RACE_ENTITIES_CATEGORIZED = {
         ],
         "Items": ALL_ITEMS,
         "Resources": [
-            "Gold Mine", "Gold", "Wood", "Spacer"
+            "Gold Mine", "Gold", "Wood", "Spacer", "Arrow Right"
         ],
         "Custom": [
             "Level Up", "Order Now", "Conquer"
@@ -576,7 +554,10 @@ function updateDisplay() {
             // Trigger sound if this event just passed and hasn't played yet
             if (isRunning && !event.hasPlayedSound) {
                 event.hasPlayedSound = true;
-                playActionSound(event.action, event.sound);
+                // ONLY play if the sound checkbox is enabled for this event
+                if (event.useSound) {
+                    playActionSound(event.action, event.sound);
+                }
             }
             
             node.classList.add('passed');
