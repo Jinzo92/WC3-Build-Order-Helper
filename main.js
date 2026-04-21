@@ -826,7 +826,7 @@ function buildSelectHTML(selectedVal) {
     }
 
     return `
-        <div class="icon-select-group">
+        <div class="icon-select-group" style="display: flex; gap: 5px; margin-bottom: 5px;">
             <div class="entity-select-container">
                 <div class="entity-select-trigger" data-value="${selectedVal}">
                     <img src="${selectedImg}" data-retry="0" onerror="let idx=parseInt(this.dataset.retry||0); let urls=['icons/Items/btn${(ICON_MAPPING[selectedText]||selectedText).replace(/[^a-zA-Z0-9]/g,'').toLowerCase()}.webp','icons/Items/${(ICON_MAPPING[selectedText]||selectedText).replace(/[^a-zA-Z0-9]/g,'').toLowerCase()}.webp','icons/${savedRace.charAt(0).toUpperCase()+savedRace.slice(1)}/btn${(ICON_MAPPING[selectedText]||selectedText).replace(/[^a-zA-Z0-9]/g,'').toLowerCase()}.webp','icons/Missing.webp']; if(idx<urls.length-1){ this.dataset.retry=idx+1; this.src=urls[idx+1]; }else{ this.src='icons/Missing.webp'; this.onerror=null; }" alt="">
@@ -836,7 +836,7 @@ function buildSelectHTML(selectedVal) {
                     ${listHtml}
                 </div>
             </div>
-            <button type="button" class="remove-icon-btn" title="Remove icon">➖</button>
+            <button type="button" class="remove-icon-btn" style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.3); border-radius:8px; cursor:pointer; padding:0 8px; transition: all 0.2s;" title="Remove icon">➖</button>
         </div>
     `;
 }
@@ -852,93 +852,54 @@ function createRow(item) {
     });
 
     div.innerHTML = `
-        <!-- Time Column -->
-        <div class="col-time">
-            <input type="number" class="editor-input time-input" value="${item.time}" min="0" title="Start Time (seconds)">
-            <span class="input-unit">sec</span>
-        </div>
-
-        <!-- Resources Column -->
-        <div class="col-resources">
-            <div class="input-with-icon gold-input">
-                <img src="icons/Gold.png" alt="Gold">
-                <input type="number" class="editor-input" value="${item.gold}" min="0" placeholder="0">
+        <input type="number" class="editor-input" value="${item.time}" min="0">
+        <input type="number" class="editor-input" value="${item.gold}" min="0" placeholder="Gold">
+        <input type="number" class="editor-input" value="${item.wood}" min="0" placeholder="Wood">
+        <input type="number" class="editor-input" value="${item.food}" min="0" placeholder="Spend">
+        <input type="number" class="editor-input" value="${item.foodMax || 0}" min="0" placeholder="Max">
+        <input type="text" class="editor-input" value="${item.action}">
+        <div class="icons-wrapper" style="display:flex; flex-direction:column;">
+            <div class="icons-list" style="display:flex; flex-direction:column;">
+                ${iconsContainerHtml}
             </div>
-            <div class="input-with-icon wood-input">
-                <img src="icons/Wood.png" alt="Wood">
-                <input type="number" class="editor-input" value="${item.wood}" min="0" placeholder="0">
-            </div>
-        </div>
-
-        <!-- Supply Column -->
-        <div class="col-supply">
-            <div class="supply-group">
-                <img src="icons/Supply.png" alt="Supply" class="supply-icon">
-                <input type="number" class="editor-input food-spend" value="${item.food}" min="0" placeholder="0" title="Supply Spend">
-                <span class="supply-divider">/</span>
-                <input type="number" class="editor-input food-max" value="${item.foodMax || 0}" min="0" placeholder="0" title="Supply Max">
-            </div>
-        </div>
-
-        <!-- Action Column -->
-        <div class="col-action">
-            <textarea class="editor-input action-textarea" placeholder="Describe the action...">${item.action}</textarea>
-        </div>
-
-        <!-- Icons & Sound Column -->
-        <div class="col-icons-sound">
-            <div class="icons-wrapper">
-                <div class="icons-list">
-                    ${iconsContainerHtml}
-                </div>
-                <button type="button" class="add-icon-btn" title="Add another icon">
-                    <span>+</span> Add Icon
-                </button>
-            </div>
+            <button type="button" class="add-icon-btn" style="background:rgba(16, 185, 129, 0.1); color:#10b981; border:1px solid rgba(16, 185, 129, 0.3); border-radius:8px; cursor:pointer; width:100%; padding:3px; transition: all 0.2s; margin-top:2px;" title="Add another icon to this row">➕</button>
             
-            <div class="sound-controls">
-                <div class="sound-toggle-row">
-                    <label class="sound-label">
-                        <input type="checkbox" class="sound-checkbox" ${item.useSound ? 'checked' : ''}>
-                        <img src="icons/sound.png" class="sound-status-icon ${item.useSound ? '' : 'muted'}" alt="Sound">
-                        <span>Announce Action</span>
-                    </label>
-                    <button type="button" class="play-sound-btn" title="Preview Sound" style="display: ${item.useSound ? 'block' : 'none'}">▶️</button>
-                </div>
-                <div class="sound-select-row" style="display: ${item.useSound ? 'flex' : 'none'}">
-                    <select class="editor-input sound-dropdown">
-                        ${Object.entries(SOUND_CATALOG).map(([cat, files]) => `
-                            <optgroup label="${cat}">
-                                ${files.map(f => `<option value="${cat.toLowerCase()}/${f}" ${item.sound === (cat.toLowerCase()+'/'+f) ? 'selected' : ''}>${f.replace('.mp3','')}</option>`).join('')}
-                            </optgroup>
-                        `).join('')}
-                    </select>
-                </div>
+            <div class="sound-select-row" style="margin-top: 8px; display: ${item.useSound ? 'flex' : 'none'}; align-items: center; gap: 5px;">
+                <select class="editor-input sound-dropdown" style="flex: 1; font-size: 0.85rem; padding: 4px;">
+                    ${Object.entries(SOUND_CATALOG).map(([cat, files]) => `
+                        <optgroup label="${cat}">
+                            ${files.map(f => `<option value="${cat.toLowerCase()}/${f}" ${item.sound === (cat.toLowerCase()+'/'+f) ? 'selected' : ''}>${f.replace('.mp3','')}</option>`).join('')}
+                        </optgroup>
+                    `).join('')}
+                </select>
+                <button type="button" class="play-sound-btn" style="background:none; border:none; cursor:pointer; font-size: 1.1rem;" title="Preview Sound">▶️</button>
             </div>
         </div>
-
-        <!-- Delete Column -->
-        <div class="col-delete">
-            <button type="button" class="del-btn" title="Remove Step">🗑️</button>
+        <div class="row-actions" style="display:flex; flex-direction:column; gap:5px; align-items:center;">
+            <button type="button" class="del-btn">🗑️</button>
+            <div class="sound-toggle-wrapper" style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+                <label style="cursor:pointer; display:flex; flex-direction:column; align-items:center;">
+                    <img src="icons/sound.png" style="width:30px; height:30px; opacity:${item.useSound ? '1' : '0.4'}; filter: brightness(0) invert(1); transition:all 0.2s;" class="sound-icon-status">
+                    <input type="checkbox" class="sound-checkbox" ${item.useSound ? 'checked' : ''} style="margin-top:2px;">
+                </label>
+            </div>
         </div>
     `;
     
     // Delegation for dropdowns within the row
     const soundCheckbox = div.querySelector('.sound-checkbox');
     const soundSelectRow = div.querySelector('.sound-select-row');
-    const soundStatusIcon = div.querySelector('.sound-status-icon');
-    const playSoundBtn = div.querySelector('.play-sound-btn');
+    const soundIconStatus = div.querySelector('.sound-icon-status');
 
     if (soundCheckbox) {
         soundCheckbox.addEventListener('change', () => {
             const isChecked = soundCheckbox.checked;
             soundSelectRow.style.display = isChecked ? 'flex' : 'none';
-            playSoundBtn.style.display = isChecked ? 'block' : 'none';
-            if (isChecked) soundStatusIcon.classList.remove('muted');
-            else soundStatusIcon.classList.add('muted');
+            soundIconStatus.style.opacity = isChecked ? '1' : '0.4';
         });
     }
 
+    const playSoundBtn = div.querySelector('.play-sound-btn');
     if (playSoundBtn) {
         playSoundBtn.addEventListener('click', (e) => {
             e.stopPropagation(); // Prevent row click from firing
