@@ -724,19 +724,7 @@ document.addEventListener('mousedown', (e) => {
     }
 });
 
-const raceDropdown = document.getElementById('raceDropdown');
-const dropdownSelected = document.getElementById('dropdownSelected');
-const dropdownOptionsEls = document.querySelectorAll('.dropdown-option');
-
 function applyRaceUI(raceValue) {
-    const opt = document.querySelector(`.dropdown-option[data-value="${raceValue}"]`);
-    if(opt) {
-        const selImg = document.querySelector('#dropdownSelected img');
-        const selText = document.querySelector('#selectedRaceText');
-        selImg.style.display = '';
-        selImg.src = opt.dataset.img;
-        selText.textContent = opt.dataset.text;
-    }
     const editorRaceSelect = document.getElementById('editorRaceSelect');
     if(editorRaceSelect) editorRaceSelect.value = raceValue;
 }
@@ -748,35 +736,12 @@ if(editorRaceSelect) {
         const val = editorRaceSelect.value;
         savedRace = val;
         localStorage.setItem('wc3_selected_race', val);
-        applyRaceUI(val); // Sync main UI
+        applyRaceUI(val); 
         if(editorModal.classList.contains('active')) {
             renderEditor();
         }
     });
 }
-
-dropdownSelected.addEventListener('click', (e) => {
-    raceDropdown.classList.toggle('open');
-    e.stopPropagation();
-});
-
-dropdownOptionsEls.forEach(option => {
-    option.addEventListener('click', () => {
-        const val = option.dataset.value;
-        localStorage.setItem('wc3_selected_race', val);
-        savedRace = val;
-        applyRaceUI(val);
-        raceDropdown.classList.remove('open');
-        
-        if(editorModal.classList.contains('active')) {
-            renderEditor();
-        }
-    });
-});
-
-document.addEventListener('click', () => {
-    raceDropdown.classList.remove('open');
-});
 
 const editBtn = document.getElementById('editBtn');
 const editorModal = document.getElementById('editorModal');
@@ -1025,28 +990,57 @@ const GITHUB_USER = 'Jinzo92';
 const GITHUB_REPO = 'WC3-Build-Order-Helper';
 const GITHUB_PATH = 'build-orders';
 
+function renderGithubBOs(jsonFiles) {
+    if (jsonFiles.length > 0) {
+        boSelect.innerHTML = '<option value="">-- Select GitHub BO --</option>';
+        jsonFiles.forEach(file => {
+            const option = document.createElement('option');
+            option.value = 'remote:' + (file.download_url || file.url); 
+            option.textContent = "🌐 " + file.name.replace('.json', '');
+            boSelect.appendChild(option);
+        });
+        boSelect.style.display = 'block';
+    }
+}
+
 async function fetchGithubBuildOrders() {
+    const CACHE_KEY = 'wc3_github_bo_cache';
+    const CACHE_TIME_KEY = 'wc3_github_bo_cache_time';
+    const CACHE_DURATION = 15 * 60 * 1000; // 15 Minutes
+
     try {
+        // Try to load from cache first
+        const cachedData = localStorage.getItem(CACHE_KEY);
+        const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+
+        if (cachedData && cachedTime && (Date.now() - parseInt(cachedTime) < CACHE_DURATION)) {
+            renderGithubBOs(JSON.parse(cachedData));
+            console.log("Loaded Build Orders from local cache (GitHub API limit avoided)");
+            return;
+        }
+
         const response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${GITHUB_PATH}`);
-        if (!response.ok) throw new Error('GitHub API not available');
+        if (!response.ok) {
+            if (response.status === 403) throw new Error('GitHub API Rate Limit Exceeded. Try again in a few minutes or use local folder.');
+            throw new Error('GitHub API not available');
+        }
         
         const files = await response.json();
         const jsonFiles = files.filter(f => f.name.endsWith('.json'));
         
         if (jsonFiles.length > 0) {
-            // Only clear if we actually have remote files
-            boSelect.innerHTML = '<option value="">-- Select GitHub BO --</option>';
-            
-            jsonFiles.forEach(file => {
-                const option = document.createElement('option');
-                option.value = 'remote:' + file.download_url; // Prefix to distinguish from local
-                option.textContent = "🌐 " + file.name.replace('.json', '');
-                boSelect.appendChild(option);
-            });
-            boSelect.style.display = 'block';
+            localStorage.setItem(CACHE_KEY, JSON.stringify(jsonFiles));
+            localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+            renderGithubBOs(jsonFiles);
         }
     } catch (err) {
-        console.warn("Could not load BOs from GitHub:", err);
+        console.warn("Could not load BOs from GitHub:", err.message);
+        // If we have old cache, use it as fallback on error
+        const cachedData = localStorage.getItem(CACHE_KEY);
+        if (cachedData) {
+            renderGithubBOs(JSON.parse(cachedData));
+            console.log("API Error - Fallback to expired cache used");
+        }
     }
 }
 
