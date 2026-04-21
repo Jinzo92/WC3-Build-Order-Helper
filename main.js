@@ -737,8 +737,23 @@ function applyRaceUI(raceValue) {
         selImg.src = opt.dataset.img;
         selText.textContent = opt.dataset.text;
     }
+    const editorRaceSelect = document.getElementById('editorRaceSelect');
+    if(editorRaceSelect) editorRaceSelect.value = raceValue;
 }
 applyRaceUI(savedRace);
+
+const editorRaceSelect = document.getElementById('editorRaceSelect');
+if(editorRaceSelect) {
+    editorRaceSelect.addEventListener('change', () => {
+        const val = editorRaceSelect.value;
+        savedRace = val;
+        localStorage.setItem('wc3_selected_race', val);
+        applyRaceUI(val); // Sync main UI
+        if(editorModal.classList.contains('active')) {
+            renderEditor();
+        }
+    });
+}
 
 dropdownSelected.addEventListener('click', (e) => {
     raceDropdown.classList.toggle('open');
