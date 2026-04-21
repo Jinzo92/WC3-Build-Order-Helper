@@ -148,7 +148,7 @@ h1 {
     transform: translateY(-10px);
     transition: all 0.2s ease;
     box-shadow: 0 10px 25px rgba(0,0,0,0.8);
-    z-index: 100;
+    z-index: 10000; /* Extremely high to clear all modal elements */
 }
 
 .custom-dropdown.open .dropdown-options {
@@ -674,7 +674,7 @@ h1 {
     position: sticky;
     top: -30px; /* Floats at top of screen within modal */
     background: var(--bg-panel);
-    z-index: 2001;
+    z-index: 5000; /* Higher than table header */
     padding-bottom: 15px;
     border-bottom: 1px solid var(--border-color);
 }
