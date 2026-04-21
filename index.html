@@ -79,7 +79,37 @@
     <div id="editorModal" class="modal-overlay">
         <div class="modal-content" style="max-width: 1200px;">
             <div class="modal-header">
-                <h2>Build Order Editor</h2>
+                <div style="display:flex; align-items:center; gap:20px;">
+                    <h2>Build Order Editor</h2>
+                    
+                    <div class="custom-dropdown" id="editorRaceDropdown" style="margin: 0; width: 220px;">
+                        <div class="dropdown-selected" id="editorRaceSelected">
+                            <div class="selected-content">
+                                <img src="icons/Human.png" alt="" class="race-icon" onerror="this.style.display='none'">
+                                <span class="race-text" id="editorSelectedRaceText">Human</span>
+                            </div>
+                            <span class="dropdown-arrow">▼</span>
+                        </div>
+                        <div class="dropdown-options" id="editorRaceOptions">
+                            <div class="dropdown-option" data-value="human" data-text="Human" data-img="icons/Human.png">
+                                <img src="icons/Human.png" alt="" class="race-icon" onerror="this.style.display='none'">
+                                <span>Human</span>
+                            </div>
+                            <div class="dropdown-option" data-value="orc" data-text="Orc" data-img="icons/Orc.png">
+                                <img src="icons/Orc.png" alt="" class="race-icon" onerror="this.style.display='none'">
+                                <span>Orc</span>
+                            </div>
+                            <div class="dropdown-option" data-value="undead" data-text="Undead" data-img="icons/Undead.png">
+                                <img src="icons/Undead.png" alt="" class="race-icon" onerror="this.style.display='none'">
+                                <span>Undead</span>
+                            </div>
+                            <div class="dropdown-option" data-value="nightelf" data-text="Night Elf" data-img="icons/Nightelf.png">
+                                <img src="icons/Nightelf.png" alt="" class="race-icon" onerror="this.style.display='none'">
+                                <span>Night Elf</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <button id="closeModalBtn" class="icon-btn">❌</button>
             </div>
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px 15px; background: rgba(0,0,0,0.2); border-radius: 10px; border: 1px solid var(--border-color);">
@@ -107,13 +137,6 @@
                     </button>
                     <input type="file" id="customIconInput" webkitdirectory directory multiple style="display: none;">
                     <input type="file" id="customSoundInput" webkitdirectory directory multiple style="display: none;">
-
-                    <select id="editorRaceSelect" class="editor-input" style="width: 120px; padding: 6px 10px; font-size: 0.9rem;">
-                        <option value="human">Human</option>
-                        <option value="orc">Orc</option>
-                        <option value="undead">Undead</option>
-                        <option value="nightelf">Night Elf</option>
-                    </select>
 
                     <select id="boSelect" class="editor-input" style="width: 170px; padding: 6px 10px; font-size: 0.9rem;">
                         <option value="">-- Select Build Order --</option>

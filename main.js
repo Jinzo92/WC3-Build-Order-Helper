@@ -725,23 +725,43 @@ document.addEventListener('mousedown', (e) => {
 });
 
 function applyRaceUI(raceValue) {
-    const editorRaceSelect = document.getElementById('editorRaceSelect');
-    if(editorRaceSelect) editorRaceSelect.value = raceValue;
+    // Custom Editor Dropdown updates
+    const editorOpt = document.querySelector(`#editorRaceOptions .dropdown-option[data-value="${raceValue}"]`);
+    if(editorOpt) {
+        const selImg = document.querySelector('#editorRaceSelected img');
+        const selText = document.querySelector('#editorSelectedRaceText');
+        if(selImg) selImg.src = editorOpt.dataset.img;
+        if(selText) selText.textContent = editorOpt.dataset.text;
+    }
 }
 applyRaceUI(savedRace);
 
-const editorRaceSelect = document.getElementById('editorRaceSelect');
-if(editorRaceSelect) {
-    editorRaceSelect.addEventListener('change', () => {
-        const val = editorRaceSelect.value;
+const editorRaceSelected = document.getElementById('editorRaceSelected');
+const editorRaceDropdown = document.getElementById('editorRaceDropdown');
+if(editorRaceSelected && editorRaceDropdown) {
+    editorRaceSelected.addEventListener('click', (e) => {
+        editorRaceDropdown.classList.toggle('open');
+        e.stopPropagation();
+    });
+}
+
+document.querySelectorAll('#editorRaceOptions .dropdown-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+        const val = opt.dataset.value;
         savedRace = val;
         localStorage.setItem('wc3_selected_race', val);
         applyRaceUI(val); 
+        if(editorRaceDropdown) editorRaceDropdown.classList.remove('open');
         if(editorModal.classList.contains('active')) {
             renderEditor();
         }
     });
-}
+});
+
+document.addEventListener('click', () => {
+    const editorRaceDropdown = document.getElementById('editorRaceDropdown');
+    if(editorRaceDropdown) editorRaceDropdown.classList.remove('open');
+});
 
 const editBtn = document.getElementById('editBtn');
 const editorModal = document.getElementById('editorModal');
