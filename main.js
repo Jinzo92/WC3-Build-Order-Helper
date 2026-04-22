@@ -963,8 +963,15 @@ function createRow(item) {
 
     const iconsList = div.querySelector('.icons-list');
     div.querySelector('.add-icon-btn').addEventListener('click', () => {
-        const firstBuilding = RACE_ENTITIES_CATEGORIZED[savedRace].Buildings[0];
-        const newSelectStr = buildSelectHTML(firstBuilding);
+        // Get the value of the last icon trigger in this row
+        const existingTriggers = div.querySelectorAll('.entity-select-trigger');
+        let lastIconInRow = null;
+        if (existingTriggers.length > 0) {
+            lastIconInRow = existingTriggers[existingTriggers.length - 1].dataset.value;
+        }
+
+        const defaultIcon = lastIconInRow || RACE_ENTITIES_CATEGORIZED[savedRace].Buildings[0];
+        const newSelectStr = buildSelectHTML(defaultIcon);
         iconsList.insertAdjacentHTML('beforeend', newSelectStr);
     });
     
@@ -1010,17 +1017,34 @@ const GITHUB_USER = 'Jinzo92';
 const GITHUB_REPO = 'WC3-Build-Order-Helper';
 const GITHUB_PATH = 'build-orders';
 
+// Local repository build orders (filenames in the build-orders/ folder)
+const LOCAL_REPO_BOS = [
+    '2025 Grubby Orc Beginner Guide FS HH SH.json',
+    'Grubby Human Pala Rifle into BM priest.json',
+    'Human Grubby Bloody Beginner - AM MK Rifle.json'
+];
+
 function renderGithubBOs(jsonFiles) {
     if (jsonFiles.length > 0) {
-        boSelect.innerHTML = '<option value="">-- Select GitHub BO --</option>';
+        // We don't clear boSelect here because LOCAL_REPO_BOS were already added
         jsonFiles.forEach(file => {
             const option = document.createElement('option');
             option.value = 'remote:' + (file.download_url || file.url); 
-            option.textContent = "🌐 " + file.name.replace('.json', '');
+            option.textContent = "🌐 GH: " + file.name.replace('.json', '');
             boSelect.appendChild(option);
         });
         boSelect.style.display = 'block';
     }
+}
+
+async function fetchLocalRepositoryBuildOrders() {
+    // Add local repository files to the dropdown
+    LOCAL_REPO_BOS.forEach(fileName => {
+        const option = document.createElement('option');
+        option.value = 'bundled:build-orders/' + fileName;
+        option.textContent = "📦 Repo: " + fileName.replace('.json', '');
+        boSelect.appendChild(option);
+    });
 }
 
 async function fetchGithubBuildOrders() {
@@ -1067,6 +1091,8 @@ async function fetchGithubBuildOrders() {
 if (loadFolderBtn && folderInput && boSelect) {
     // Show select by default (will be filled by GitHub or stay empty/hidden if error)
     boSelect.style.display = 'block';
+    boSelect.innerHTML = '<option value="">-- Select Build Order --</option>';
+    fetchLocalRepositoryBuildOrders();
     fetchGithubBuildOrders();
 
     loadFolderBtn.addEventListener('click', () => {
@@ -1133,6 +1159,16 @@ if (loadFolderBtn && folderInput && boSelect) {
                 applyBuildOrder(imported, val); // val contains the URL/name
             } catch (err) {
                 alert("Error loading build order from GitHub!");
+            }
+        } else if (val.startsWith('bundled:')) {
+            // Load from local project folder
+            const path = val.replace('bundled:', '');
+            try {
+                const response = await fetch(path);
+                const imported = await response.json();
+                applyBuildOrder(imported, val);
+            } catch (err) {
+                alert("Error loading build order from repository! Are you running via a local server?");
             }
         } else {
             // Load from local File object (stored in loadedBOFiles)
