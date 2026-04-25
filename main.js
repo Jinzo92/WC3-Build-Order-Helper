@@ -1562,7 +1562,16 @@ async function handleReplayUpload(e) {
             for (let i = 0; i < Math.min(data.length, 50); i++) {
                 hex += data[i].toString(16).padStart(2, '0') + " ";
             }
-            throw new Error("Decompression failed. Last error: " + lastError + "\nChecked: " + pos + " bytes.\n\nFirst 50 bytes (Hex):\n" + hex);
+            // Get first block info for debug
+            let blockDebug = "No blocks found.";
+            if (data.length > headerSize + 4) {
+                const c = data[headerSize] | (data[headerSize+1] << 8);
+                const d = data[headerSize+2] | (data[headerSize+3] << 8);
+                let firstBytes = "";
+                for(let j=0; j<8; j++) if(data[headerSize+8+j] !== undefined) firstBytes += data[headerSize+8+j].toString(16).padStart(2,'0') + " ";
+                blockDebug = `First Block Header: Comp=${c}, Decomp=${d}. Data prefix: ${firstBytes}`;
+            }
+            throw new Error(`Decompression failed.\n${blockDebug}\nChecked: ${pos} bytes.\n\nFirst 50 bytes (Hex):\n${hex}`);
         }
 
         // 2. Scan Actions
