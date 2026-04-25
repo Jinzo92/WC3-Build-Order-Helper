@@ -1552,19 +1552,14 @@ async function handleReplayUpload(e) {
                 // Use streaming Inflate with Z_SYNC_FLUSH (=2)
                 const inflator = new pako.Inflate();
                 
-                let chunks = [];
-                inflator.onData = function(chunk) {
-                    chunks.push(chunk);
-                };
-                
                 inflator.push(block, 2); // Z_SYNC_FLUSH
                 
-                if (inflator.err === 0 && chunks.length > 0) {
+                if (inflator.err === 0 && inflator.chunks && inflator.chunks.length > 0) {
                     let totalLen = 0;
-                    for (const c of chunks) totalLen += c.length;
+                    for (const c of inflator.chunks) totalLen += c.length;
                     let inflated = new Uint8Array(totalLen);
                     let off = 0;
-                    for (const c of chunks) { inflated.set(c, off); off += c.length; }
+                    for (const c of inflator.chunks) { inflated.set(c, off); off += c.length; }
                     
                     const newDecomp = new Uint8Array(decompressed.length + inflated.length);
                     newDecomp.set(decompressed);
