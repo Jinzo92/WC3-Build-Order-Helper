@@ -1525,16 +1525,23 @@ async function handleReplayUpload(e) {
         // 1. Decompress Blocks
         let decompressed = new Uint8Array(0);
         let pos = 48; // Skip header
-        
+        let lastError = "";
         while (pos < data.length - 8) {
             const compSize = data[pos] | (data[pos+1] << 8);
             const decompSize = data[pos+2] | (data[pos+3] << 8);
-            pos += 8; // skip CRC
+            
+            if (compSize === 0) {
+                pos++;
+                continue;
+            }
+
+            pos += 8; // skip block header (2+2+4)
             
             if (pos + compSize > data.length) break;
 
             try {
                 const block = data.slice(pos, pos + compSize);
+                // Optional: Check for Zlib header (0x78)
                 const inflated = pako.inflate(block);
                 
                 const newDecomp = new Uint8Array(decompressed.length + inflated.length);
@@ -1542,13 +1549,16 @@ async function handleReplayUpload(e) {
                 newDecomp.set(inflated, decompressed.length);
                 decompressed = newDecomp;
             } catch (inflateErr) {
-                console.warn("Failed to inflate block at pos", pos, inflateErr);
+                lastError = inflateErr.message;
+                console.warn("Block at " + pos + " failed: ", inflateErr.message);
             }
             
             pos += compSize;
         }
 
-        if (decompressed.length === 0) throw new Error("Could not decompress any data from the replay.");
+        if (decompressed.length === 0) {
+            throw new Error("Decompression failed. Last error: " + lastError + " (Checked " + pos + " bytes)");
+        }
 
         // 2. Scan Actions
         const bo = [];
