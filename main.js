@@ -1527,6 +1527,12 @@ async function handleReplayUpload(e) {
         const headerSize = data[28] | (data[29] << 8) | (data[30] << 16) | (data[31] << 24);
         let pos = headerSize; 
         let lastError = "";
+        // Detect Reforged block format: check if 0x78 (Zlib header) is at +12 instead of +8
+        let blockExtraBytes = 0;
+        if (data.length > headerSize + 13 && data[headerSize + 8 + 4] === 0x78) {
+            blockExtraBytes = 4; // Reforged: 4 extra bytes before Zlib data in each block
+        }
+
         while (pos < data.length - 8) {
             const compSize = data[pos] | (data[pos+1] << 8);
             const decompSize = data[pos+2] | (data[pos+3] << 8);
@@ -1538,22 +1544,13 @@ async function handleReplayUpload(e) {
 
             pos += 8; // skip block header (2+2+4)
             
-            if (pos + compSize > data.length) break;
+            const totalBlockData = compSize + blockExtraBytes;
+            if (pos + totalBlockData > data.length) break;
 
             try {
-                const block = data.slice(pos, pos + compSize);
-                let inflated;
-                try {
-                    inflated = pako.inflate(block);
-                } catch(e1) {
-                    // Reforged replays have 4 extra bytes before Zlib data
-                    try {
-                        inflated = pako.inflate(block.slice(4));
-                    } catch(e2) {
-                        // Try raw deflate as last resort
-                        inflated = pako.inflateRaw(block);
-                    }
-                }
+                // Skip extra bytes (0 for classic, 4 for Reforged) to reach Zlib data
+                const block = data.slice(pos + blockExtraBytes, pos + blockExtraBytes + compSize);
+                const inflated = pako.inflate(block);
                 
                 const newDecomp = new Uint8Array(decompressed.length + inflated.length);
                 newDecomp.set(decompressed);
@@ -1564,7 +1561,7 @@ async function handleReplayUpload(e) {
                 console.warn("Block at " + pos + " failed: ", String(inflateErr));
             }
             
-            pos += compSize;
+            pos += totalBlockData;
         }
 
         if (decompressed.length === 0) {
