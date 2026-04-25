@@ -1539,40 +1539,26 @@ async function handleReplayUpload(e) {
 
         while (pos < data.length - blockHeaderSize) {
             const blockSize = data[pos] | (data[pos+1] << 8);
-            
             if (blockSize === 0) break;
             
             // Skip the block header to reach compressed data
             pos += blockHeaderSize;
-            
             if (pos + blockSize > data.length) break;
 
             try {
                 const block = data.slice(pos, pos + blockSize);
-                // Use streaming Inflate with Z_SYNC_FLUSH (=2)
-                const inflator = new pako.Inflate();
+                const inflated = pako.inflate(block); // Try direct inflate
                 
-                inflator.push(block, 2); // Z_SYNC_FLUSH
-                
-                if (inflator.err === 0 && inflator.chunks && inflator.chunks.length > 0) {
-                    let totalLen = 0;
-                    for (const c of inflator.chunks) totalLen += c.length;
-                    let inflated = new Uint8Array(totalLen);
-                    let off = 0;
-                    for (const c of inflator.chunks) { inflated.set(c, off); off += c.length; }
-                    
+                if (inflated && inflated.length > 0) {
                     const newDecomp = new Uint8Array(decompressed.length + inflated.length);
                     newDecomp.set(decompressed);
                     newDecomp.set(inflated, decompressed.length);
                     decompressed = newDecomp;
                     blockCount++;
-                } else if (inflator.err !== 0) {
-                    console.warn("Block at " + pos + " inflate error: ", inflator.msg);
                 }
             } catch (inflateErr) {
                 console.warn("Block at " + pos + " failed: ", String(inflateErr));
             }
-            
             pos += blockSize;
         }
 
@@ -1585,37 +1571,25 @@ async function handleReplayUpload(e) {
             for (let i=0; i<3; i++) {
                 if (blockPos + blockHeaderSize <= data.length) {
                     const bSize = data[blockPos] | (data[blockPos+1] << 8);
+                    const dSize = data[blockPos+2] | (data[blockPos+3] << 8); // Reforged actually has padding here!
+                    // Wait, if isReforged, decompSize is at offset 4, not 2!
+                    const decompSize = isReforged ? (data[blockPos+4] | (data[blockPos+5] << 8)) : (data[blockPos+2] | (data[blockPos+3] << 8));
+                    
                     if (bSize > 0 && blockPos + blockHeaderSize + bSize <= data.length) {
                         const blockData = data.slice(blockPos + blockHeaderSize, blockPos + blockHeaderSize + bSize);
                         blocks.push(blockData);
-                        diag += "\nBlock " + i + " header: " + blockData[0].toString(16) + " " + blockData[1].toString(16) + " (size " + bSize + ")";
+                        diag += "\nBlock " + i + " header: " + blockData[0].toString(16) + " " + blockData[1].toString(16) + " (comp=" + bSize + ", decomp=" + decompSize + ")";
                     }
                     blockPos += blockHeaderSize + bSize;
                 }
             }
             
             if (blocks.length > 0) {
-                // Try inflating block 0 alone using Inflate without finish
-                try {
-                    const inf = new pako.Inflate();
-                    inf.push(blocks[0], 2); // Z_SYNC_FLUSH
-                    diag += "\ninf.push(b[0], 2) chunks: " + (inf.chunks ? inf.chunks.length : "undefined");
-                } catch(e) {}
-                
-                // Try pako.inflate on block 0 with windowBits: 15
                 try {
                     const r = pako.inflate(blocks[0]);
-                    diag += "\npako.inflate(b[0]) OK";
+                    diag += "\npako.inflate(b[0]) OK, result=" + (r ? r.length : "falsy");
                 } catch(e) {
-                    diag += "\npako.inflate(b[0]) FAIL";
-                }
-
-                // Try stripping zlib header (first 2 bytes) and using inflateRaw
-                try {
-                    const r = pako.inflateRaw(blocks[0].slice(2));
-                    diag += "\npako.inflateRaw(b[0].slice(2)) OK";
-                } catch(e) {
-                    diag += "\npako.inflateRaw FAIL";
+                    diag += "\npako.inflate(b[0]) FAIL: " + e.message;
                 }
             }
 
