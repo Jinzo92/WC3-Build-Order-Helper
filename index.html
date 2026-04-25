@@ -110,12 +110,31 @@
                         </div>
                     </div>
                 </div>
-                <button id="closeModalBtn" class="icon-btn">❌</button>
+                <div style="margin-left: auto; display: flex; align-items: center; gap: 15px;">
+                    <button id="headerSaveBtn" class="btn primary-btn small-btn" style="padding: 6px 12px; font-size: 0.8rem; background: var(--accent-gold); color: black;" title="Save current changes to file">
+                        💾 Save File
+                    </button>
+                    <div id="saveModeIndicator" style="font-size: 0.7rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+                        <span id="saveModeText">📥 Download Mode</span>
+                        <span id="saveModeHelp" title="Why Download Mode? Direct overwriting requires a secure context (https/localhost) or modern browser permission." style="cursor: help; opacity: 0.6;">ⓘ</span>
+                    </div>
+                    <div id="currentBOInfo" style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">Aktuelle BO: <span id="currentBOFileName" style="color: var(--accent-gold); font-weight: 600;">None</span></div>
+                        <div id="unsavedWarning" style="font-size: 0.75rem; color: #ef4444; opacity: 0; transition: opacity 0.3s;">(unsaved changes in the BO)</div>
+                    </div>
+                </div>
+                <button id="closeModalBtn" class="icon-btn" style="margin-left: 20px;">❌</button>
             </div>
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px 15px; background: rgba(0,0,0,0.2); border-radius: 10px; border: 1px solid var(--border-color);">
-                <label style="color: var(--text-muted); font-size: 0.9rem; white-space: nowrap;">⏱ Start Delay (sec):</label>
-                <input type="number" id="delayInput" class="editor-input" value="5" min="0" max="30" style="width: 80px; padding: 6px 10px; font-size: 0.95rem;">
-                <span style="color: var(--text-muted); font-size: 0.8rem;">Timer counts down before 00:00</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 15px;">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 10px 15px; background: rgba(0,0,0,0.2); border-radius: 10px; border: 1px solid var(--border-color); flex: 0 1 auto;">
+                    <label style="color: var(--text-muted); font-size: 0.9rem; white-space: nowrap;">⏱ Start Delay (sec):</label>
+                    <input type="number" id="delayInput" class="editor-input" value="5" min="0" max="30" style="width: 60px; padding: 6px 10px; font-size: 0.95rem; text-align: center;">
+                    <span style="color: var(--text-muted); font-size: 0.75rem; opacity: 0.7;">Timer counts down before 00:00</span>
+                </div>
+                <button id="importReplayBtn" class="btn primary-btn small-btn" style="background: linear-gradient(135deg, #1e3a8a, #3b82f6); border: 1px solid rgba(255,255,255,0.2); height: 100%;">
+                    🎮 Import BO from a replay
+                </button>
+                <input type="file" id="replayInput" accept=".w3g" style="display: none;">
             </div>
             <div class="modal-actions" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
                 <div style="display: flex; gap: 10px;">
@@ -129,15 +148,6 @@
                     </button>
                     <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;">
                     
-                    <button id="loadCustomIconsBtn" class="btn secondary-btn small-btn" title="Select your Custom Icons folder">
-                        <span>🖼️</span> Custom Icons
-                    </button>
-                    <button id="loadCustomSoundsBtn" class="btn secondary-btn small-btn" title="Select your Custom Sounds folder">
-                        <span>🔊</span> Custom Sounds
-                    </button>
-                    <input type="file" id="customIconInput" webkitdirectory directory multiple style="display: none;">
-                    <input type="file" id="customSoundInput" webkitdirectory directory multiple style="display: none;">
-
                     <select id="boSelect" class="editor-input" style="width: 170px; padding: 6px 10px; font-size: 0.9rem;">
                         <option value="">-- Select Build Order --</option>
                     </select>
@@ -147,9 +157,9 @@
                 <div title="Time in Timeline">Time</div>
                 <div title="Required Gold"><img src="icons/Gold.png" onerror="this.style.display='none'" style="height: 20px; vertical-align: middle;"> Gold</div>
                 <div title="Required Wood"><img src="icons/Wood.png" onerror="this.style.display='none'" style="height: 20px; vertical-align: middle;"> Wood</div>
-                <div title="Supply Current/Cost">Supply Spend</div>
-                <div title="Supply Max Limit">Supply Max</div>
-                <div>Action Text</div>
+                <div title="Supply Current/Cost">Supply</div>
+                <div title="Supply Max Limit">Max</div>
+                <div>Action Text (Headline & Subtext)</div>
                 <div>Icon</div>
                 <div></div>
             </div>
@@ -190,6 +200,7 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <script src="main.js"></script>
 </body>
 </html>

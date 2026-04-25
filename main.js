@@ -332,6 +332,43 @@ const defaultBuildOrders = {
     ]
 };
 
+let currentFileName = "None";
+let isUnsaved = false;
+
+function markAsUnsaved() {
+    isUnsaved = true;
+    const warning = document.getElementById('unsavedWarning');
+    if (warning) warning.style.opacity = '1';
+}
+
+function clearUnsaved() {
+    isUnsaved = false;
+    const warning = document.getElementById('unsavedWarning');
+    if (warning) warning.style.opacity = '0';
+}
+
+function updateFileNameDisplay(name) {
+    currentFileName = decodeURIComponent(name || "None");
+    const el = document.getElementById('currentBOFileName');
+    if (el) el.textContent = currentFileName.replace('.json', '');
+    
+    updateSaveModeUI();
+    clearUnsaved();
+}
+
+function updateSaveModeUI() {
+    const modeText = document.getElementById('saveModeText');
+    const modeIndicator = document.getElementById('saveModeIndicator');
+    
+    if (currentFileHandle && supportsFileSystemAccess) {
+        if (modeText) modeText.textContent = "💾 Overwrite Mode";
+        if (modeText) modeText.style.color = "var(--accent-food)";
+    } else {
+        if (modeText) modeText.textContent = "📥 Download Mode";
+        if (modeText) modeText.style.color = "var(--text-muted)";
+    }
+}
+
 let savedRace = localStorage.getItem('wc3_selected_race') || 'human';
 
 let buildOrder = [];
@@ -432,7 +469,7 @@ function renderIconsHTML(iconsArray, raceId, type = 'event') {
             }
         `;
         
-        html += `<img src="${trys[0]}" alt="${iconName}" class="${customClass}" data-retry="0" onerror="${fallbackCode}" id="img_${uniqueTimeId}_${arrIdx}">`;
+        html += `<img src="${trys[0]}" alt="${iconName}" class="${customClass}" style="opacity:0; transition: opacity 0.3s ease; background: rgba(0,0,0,0.2);" data-retry="0" onload="this.style.opacity=1" onerror="${fallbackCode}" id="img_${uniqueTimeId}_${arrIdx}">`;
     });
     
     return html;
@@ -602,7 +639,10 @@ function updateDisplay() {
 
             upcomingAction.innerHTML = `
                 ${imgMarkup}
-                <span class="highlight-gold">${currentNextEvent.action}</span>
+                <div class="upcoming-action-text-wrapper">
+                    <span class="highlight-gold">${currentNextEvent.action}</span>
+                    ${currentNextEvent.subtext ? `<span class="upcoming-subtext">${currentNextEvent.subtext}</span>` : ''}
+                </div>
                 <div class="upcoming-resources">
                     ${resourcesMarkup}
                 </div>
@@ -857,7 +897,10 @@ function createRow(item) {
         <input type="number" class="editor-input" value="${item.wood}" min="0" placeholder="Wood">
         <input type="number" class="editor-input" value="${item.food}" min="0" placeholder="Spend">
         <input type="number" class="editor-input" value="${item.foodMax || 0}" min="0" placeholder="Max">
-        <input type="text" class="editor-input" value="${item.action}">
+        <div class="editor-action-container">
+            <input type="text" class="editor-input editor-headline" value="${item.action}" placeholder="Headline">
+            <input type="text" class="editor-input editor-subtext" value="${item.subtext || ''}" placeholder="Subtext (optional)">
+        </div>
         <div class="icons-wrapper" style="display:flex; flex-direction:column;">
             <div class="icons-list" style="display:flex; flex-direction:column;">
                 ${iconsContainerHtml}
@@ -945,18 +988,21 @@ function createRow(item) {
             trigger.querySelector('span').textContent = newVal;
             trigger.querySelector('img').src = newImg;
             list.classList.remove('active');
+            markAsUnsaved();
             return;
         }
 
         const removeBtn = e.target.closest('.remove-icon-btn');
         if (removeBtn) {
             removeBtn.closest('.icon-select-group').remove();
+            markAsUnsaved();
             return;
         }
 
         const delBtn = e.target.closest('.del-btn');
         if (delBtn) {
             div.remove();
+            markAsUnsaved();
             return;
         }
     });
@@ -973,6 +1019,7 @@ function createRow(item) {
         const defaultIcon = lastIconInRow || RACE_ENTITIES_CATEGORIZED[savedRace].Buildings[0];
         const newSelectStr = buildSelectHTML(defaultIcon);
         iconsList.insertAdjacentHTML('beforeend', newSelectStr);
+        markAsUnsaved();
     });
     
     return div;
@@ -993,6 +1040,11 @@ function renderEditor() {
     buildOrder.forEach(item => {
         editorRows.appendChild(createRow(item));
     });
+    
+    // Add change detection
+    editorRows.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', markAsUnsaved);
+    });
 }
 
 const resetEditorBtn = document.getElementById('resetEditorBtn');
@@ -1006,11 +1058,62 @@ if (resetEditorBtn) {
 }
 
 // --- Build Order Loader (GitHub & Local) ---
-const loadFolderBtn = document.getElementById('loadFolderBtn');
-const boSelect = document.getElementById('boSelect');
-const folderInput = document.getElementById('folderInput');
-
 let loadedBOFiles = {}; // Maps filename to either a File object (local) or a URL string (remote)
+let fileHandles = {};  // Maps filename to FileSystemFileHandle for direct saving
+let currentFileHandle = null;
+
+// Check for File System Access API support
+const supportsFileSystemAccess = 'showDirectoryPicker' in window;
+
+async function loadFolderWithAPI() {
+    try {
+        const dirHandle = await window.showDirectoryPicker();
+        // Request permission to write
+        if ((await dirHandle.requestPermission({ mode: 'readwrite' })) !== 'granted') {
+            alert("Permission denied. Direct saving will not be possible.");
+        }
+        
+        loadedBOFiles = {};
+        fileHandles = {};
+        boSelect.innerHTML = '<option value="">-- Select Local BO --</option>';
+        
+        let fileCount = 0;
+        for await (const entry of dirHandle.values()) {
+            if (entry.kind === 'file' && entry.name.endsWith('.json')) {
+                const file = await entry.getFile();
+                loadedBOFiles[entry.name] = file;
+                fileHandles[entry.name] = entry;
+                
+                const option = document.createElement('option');
+                option.value = entry.name;
+                option.textContent = "📁 " + entry.name.replace('.json', '');
+                boSelect.appendChild(option);
+                fileCount++;
+            }
+        }
+        
+        if (fileCount > 0) {
+            const divider = document.createElement('option');
+            divider.disabled = true;
+            divider.textContent = "-------------------";
+            boSelect.appendChild(divider);
+
+            const backOpt = document.createElement('option');
+            backOpt.value = "action:reload_github";
+            backOpt.textContent = "🔄 Back to GitHub Builds";
+            boSelect.appendChild(backOpt);
+        } else {
+            alert('No .json files found in that folder!');
+            fetchGithubBuildOrders();
+        }
+    } catch (err) {
+        if (err.name !== 'AbortError') {
+            console.error("FS API Error:", err);
+            // Fallback: trigger the hidden input if API fails or user cancels
+            folderInput.click();
+        }
+    }
+}
 
 // GitHub Config
 const GITHUB_USER = 'Jinzo92';
@@ -1078,7 +1181,11 @@ if (loadFolderBtn && folderInput && boSelect) {
     fetchGithubBuildOrders();
 
     loadFolderBtn.addEventListener('click', () => {
-        folderInput.click();
+        if (supportsFileSystemAccess) {
+            loadFolderWithAPI();
+        } else {
+            folderInput.click();
+        }
     });
     
     // When the user selects a folder
@@ -1128,29 +1235,33 @@ if (loadFolderBtn && folderInput && boSelect) {
         if (!val) return;
 
         if (val === "action:reload_github") {
+            currentFileHandle = null;
             fetchGithubBuildOrders();
             return;
         }
 
         if (val.startsWith('remote:')) {
+            currentFileHandle = null;
             // Load from GitHub URL
             const url = val.replace('remote:', '');
             try {
                 const response = await fetch(url);
                 const imported = await response.json();
-                applyBuildOrder(imported, val); // val contains the URL/name
+                applyBuildOrder(imported, val.replace('remote:', '').split('/').pop()); 
             } catch (err) {
                 alert("Error loading build order from GitHub!");
             }
         } else {
             // Load from local File object (stored in loadedBOFiles)
             const file = loadedBOFiles[val];
+            currentFileHandle = fileHandles[val] || null;
+            
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(evt) {
                     try {
                         const imported = JSON.parse(evt.target.result);
-                        applyBuildOrder(imported, val); // val is the filename
+                        applyBuildOrder(imported, val); 
                     } catch (err) {
                         alert("Error reading file! Is it valid JSON?");
                     }
@@ -1163,6 +1274,11 @@ if (loadFolderBtn && folderInput && boSelect) {
 
 function applyBuildOrder(data, fileName = '') {
     if (Array.isArray(data)) {
+        // Ensure currentFileHandle is set if it exists in our map
+        if (fileName && fileHandles[fileName]) {
+            currentFileHandle = fileHandles[fileName];
+        }
+        
         // --- Auto Race Detection ---
         let detectedRace = null;
         const allIcons = data.flatMap(item => item.icons || []);
@@ -1206,6 +1322,7 @@ function applyBuildOrder(data, fileName = '') {
             icons: item.icons || (item.icon ? [item.icon] : [])
         }));
         
+        updateFileNameDisplay(fileName);
         localStorage.setItem('wc3_build_order', JSON.stringify(buildOrder));
         resetTimer();
         initTimeline();
@@ -1228,49 +1345,24 @@ closeModalBtn.addEventListener('click', () => {
 
 addRowBtn.addEventListener('click', () => {
     const firstIcon = RACE_ENTITIES_CATEGORIZED[savedRace]['Buildings'][0];
-    editorRows.appendChild(createRow({time: 0, gold: 0, wood: 0, food: 0, foodMax: 0, action: 'New Action', icons: [firstIcon]}));
+    const newRow = createRow({time: 0, gold: 0, wood: 0, food: 0, foodMax: 0, action: 'New Action', subtext: '', icons: [firstIcon]});
+    editorRows.appendChild(newRow);
+    markAsUnsaved();
 });
-// --- Custom Sounds Loader ---
-const loadCustomSoundsBtn = document.getElementById('loadCustomSoundsBtn');
-const customSoundInput = document.getElementById('customSoundInput');
-
-if (loadCustomSoundsBtn && customSoundInput) {
-    loadCustomSoundsBtn.addEventListener('click', () => {
-        customSoundInput.click();
-    });
-
-    customSoundInput.addEventListener('change', (e) => {
-        const files = e.target.files;
-        if (!files || files.length === 0) return;
-
-        let newCustomSounds = [];
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
-            const name = file.name;
-            
-            // Only accept audio
-            if (/\.(mp3|wav|ogg|aac)$/i.test(name)) {
-                let cleanName = name.replace(/\.(mp3|wav|ogg|aac)$/i, '');
-                newCustomSounds.push(cleanName);
-                
-                // Revoke old URL if exists to save memory
-                if (CUSTOM_SOUND_OBJECTS[cleanName]) URL.revokeObjectURL(CUSTOM_SOUND_OBJECTS[cleanName]);
-                CUSTOM_SOUND_OBJECTS[cleanName] = URL.createObjectURL(file);
-            }
-        }
-
-        if (newCustomSounds.length > 0) {
-            SOUND_CATALOG.Custom = newCustomSounds.sort();
-            alert(`${newCustomSounds.length} Custom Sounds geladen!`);
-            if (editorModal.classList.contains('active')) renderEditor();
-        }
-    });
-}
+// --- Editor Logic ---
+const delayInput = document.getElementById('delayInput');
 
 saveEditorBtn.addEventListener('click', () => {
     const newOrder = [];
     editorRows.querySelectorAll('.editor-row').forEach(row => {
-        const inputs = row.querySelectorAll('.editor-input');
+        const timeInput = row.querySelectorAll('.editor-input')[0];
+        const goldInput = row.querySelectorAll('.editor-input')[1];
+        const woodInput = row.querySelectorAll('.editor-input')[2];
+        const spendInput = row.querySelectorAll('.editor-input')[3];
+        const maxInput = row.querySelectorAll('.editor-input')[4];
+        
+        const headlineInput = row.querySelector('.editor-headline');
+        const subtextInput = row.querySelector('.editor-subtext');
         
         let rowIcons = Array.from(row.querySelectorAll('.entity-select-trigger')).map(trigger => trigger.dataset.value);
         
@@ -1278,12 +1370,13 @@ saveEditorBtn.addEventListener('click', () => {
         const soundCheckbox = row.querySelector('.sound-checkbox');
 
         newOrder.push({
-            time: parseInt(inputs[0].value) || 0,
-            gold: parseInt(inputs[1].value) || 0,
-            wood: parseInt(inputs[2].value) || 0,
-            food: parseInt(inputs[3].value) || 0,
-            foodMax: parseInt(inputs[4].value) || 0,
-            action: inputs[5].value,
+            time: parseInt(timeInput.value) || 0,
+            gold: parseInt(goldInput.value) || 0,
+            wood: parseInt(woodInput.value) || 0,
+            food: parseInt(spendInput.value) || 0,
+            foodMax: parseInt(maxInput.value) || 0,
+            action: headlineInput.value,
+            subtext: subtextInput.value,
             icons: rowIcons,
             useSound: soundCheckbox.checked,
             sound: soundDropdown.value
@@ -1293,6 +1386,7 @@ saveEditorBtn.addEventListener('click', () => {
     
     buildOrder = newOrder;
     localStorage.setItem('wc3_build_order', JSON.stringify(buildOrder));
+    // NOTE: isUnsaved is NOT cleared here because it's not saved to FILE yet.
     
     // Save delay setting
     const delayInput = document.getElementById('delayInput');
@@ -1304,36 +1398,65 @@ saveEditorBtn.addEventListener('click', () => {
     
     editorModal.classList.remove('active');
     
-    resetTimer();
-    initTimeline();
-    updateDisplay();
+    // Show a brief loading state to prevent flickering
+    const upcomingAction = document.getElementById('upcomingAction');
+    upcomingAction.innerHTML = `<div style="display:flex; align-items:center; gap:10px; color:var(--text-muted); padding: 20px;"><div class="spinner"></div> Lade Build Order...</div>`;
+    
+    setTimeout(() => {
+        resetTimer();
+        initTimeline();
+        updateDisplay();
+    }, 400);
 });
 
-exportBtn.addEventListener('click', () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(buildOrder, null, 2));
+exportBtn.addEventListener('click', async () => {
+    const jsonContent = JSON.stringify(buildOrder, null, 2);
+    
+    // Direct save if handle exists
+    if (currentFileHandle && supportsFileSystemAccess) {
+        try {
+            // Request permission again if it was lost
+            if ((await currentFileHandle.requestPermission({ mode: 'readwrite' })) === 'granted') {
+                const writable = await currentFileHandle.createWritable();
+                await writable.write(jsonContent);
+                await writable.close();
+                console.log("File saved directly to disk.");
+                clearUnsaved();
+                return; // Done
+            }
+        } catch (err) {
+            console.error("Direct save failed:", err);
+            // Fallback to download below
+        }
+    }
+
+    // Standard Download Fallback
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(jsonContent);
     const dlAnchorElem = document.createElement('a');
     dlAnchorElem.setAttribute("href", dataStr);
-    dlAnchorElem.setAttribute("download", `wc3_build_order_${savedRace}.json`);
+    dlAnchorElem.setAttribute("download", currentFileName.endsWith('.json') ? currentFileName : `wc3_build_order_${savedRace}.json`);
     dlAnchorElem.click();
+    clearUnsaved();
 });
+
+const headerSaveBtn = document.getElementById('headerSaveBtn');
+if (headerSaveBtn) {
+    headerSaveBtn.addEventListener('click', () => {
+        exportBtn.click();
+    });
+}
 
 importFile.addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (!file) return;
+    currentFileHandle = null; // No handle from standard input
     
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
             const imported = JSON.parse(e.target.result);
             if (Array.isArray(imported)) {
-                buildOrder = imported.map(item => ({
-                    ...item,
-                    gold: item.gold || 0,
-                    wood: item.wood || 0,
-                    foodMax: item.foodMax || 0,
-                    icons: item.icons || (item.icon ? [item.icon] : [])
-                }));
-                renderEditor();
+                applyBuildOrder(imported, file.name);
             } else {
                 alert("Invalid Build Order Format!");
             }
@@ -1345,57 +1468,190 @@ importFile.addEventListener('change', (event) => {
     event.target.value = '';
 });
 
-// Start
-initTimeline();
-updateDisplay();
-
-const loadCustomIconsBtn = document.getElementById('loadCustomIconsBtn');
-const customIconInput = document.getElementById('customIconInput');
-
-loadCustomIconsBtn.addEventListener('click', () => {
-    customIconInput.click();
-});
-
-customIconInput.addEventListener('change', (e) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    let newCustomIcons = [];
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const name = file.name;
+// Single File Overwrite Support via API
+async function importWithAPI() {
+    try {
+        const [handle] = await window.showOpenFilePicker({
+            types: [{ description: 'JSON Build Order', accept: { 'application/json': ['.json'] } }],
+            multiple: false
+        });
+        const file = await handle.getFile();
+        const content = await file.text();
+        const imported = JSON.parse(content);
         
-        // Only accept images
-        if (/\.(png|webp|jpg|jpeg)$/i.test(name)) {
-            // Create a pretty name: remove BTN prefix and extension
-            let cleanName = name.replace(/^BTN/i, '').replace(/\.(png|webp|jpg|jpeg)$/i, '');
-            // Add spaces back for readability if it was CamelCase (optional but nice)
-            cleanName = cleanName.replace(/([A-Z])/g, ' $1').trim();
-            
-            newCustomIcons.push(cleanName);
-            
-            // Map the pretty name to the actual filename for loading
-            ICON_MAPPING[cleanName] = name.replace(/\.(png|webp|jpg|jpeg)$/i, '');
+        if (Array.isArray(imported)) {
+            currentFileHandle = handle;
+            applyBuildOrder(imported, file.name);
         }
+    } catch (err) {
+        if (err.name !== 'AbortError') console.error(err);
+    }
+}
+
+const importBtn = document.getElementById('importBtn');
+if (importBtn) {
+    importBtn.addEventListener('click', () => {
+        if (supportsFileSystemAccess) {
+            importWithAPI();
+        } else {
+            importFile.click();
+        }
+    });
+}
+const importReplayBtn = document.getElementById('importReplayBtn');
+const replayInput = document.getElementById('replayInput');
+
+if (importReplayBtn && replayInput) {
+    importReplayBtn.addEventListener('click', () => replayInput.click());
+    replayInput.addEventListener('change', handleReplayUpload);
+}
+
+async function handleReplayUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (typeof pako === 'undefined') {
+        alert("Error: The compression library (pako) could not be loaded. If you are running this locally via file://, your browser might be blocking external scripts. Please try running via a local server or host it on GitHub Pages.");
+        return;
     }
 
-    if (newCustomIcons.length > 0) {
-        // Remove duplicates and update all races
-        newCustomIcons = [...new Set(newCustomIcons)];
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const data = new Uint8Array(arrayBuffer);
         
-        for (let race in RACE_ENTITIES_CATEGORIZED) {
-            RACE_ENTITIES_CATEGORIZED[race].Custom = newCustomIcons;
-        }
-        
-        alert(`${newCustomIcons.length} Custom Icons geladen! Du findest sie jetzt ganz unten im Editor.`);
-        
-        // Re-render editor to show new options
-        if (editorModal.classList.contains('active')) {
-            renderEditor();
-        }
-    }
-});
+        if (data.length < 48) throw new Error("File too small to be a WC3 replay.");
 
+        // --- W3G Parsing ---
+        // 1. Decompress Blocks
+        let decompressed = new Uint8Array(0);
+        let pos = 48; // Skip header
+        
+        while (pos < data.length - 8) {
+            const compSize = data[pos] | (data[pos+1] << 8);
+            const decompSize = data[pos+2] | (data[pos+3] << 8);
+            pos += 8; // skip CRC
+            
+            if (pos + compSize > data.length) break;
+
+            try {
+                const block = data.slice(pos, pos + compSize);
+                const inflated = pako.inflate(block);
+                
+                const newDecomp = new Uint8Array(decompressed.length + inflated.length);
+                newDecomp.set(decompressed);
+                newDecomp.set(inflated, decompressed.length);
+                decompressed = newDecomp;
+            } catch (inflateErr) {
+                console.warn("Failed to inflate block at pos", pos, inflateErr);
+            }
+            
+            pos += compSize;
+        }
+
+        if (decompressed.length === 0) throw new Error("Could not decompress any data from the replay.");
+
+        // 2. Scan Actions
+        const bo = [];
+        let time = 0;
+        let dPos = 0;
+        
+        // Basic scan for '0x10' (Ability/Build) packets
+        // This is a simplified parser
+        while (dPos < decompressed.length - 20) {
+            const blockId = decompressed[dPos];
+            
+            if (blockId === 0x1E || blockId === 0x1F) {
+                const blockSize = decompressed[dPos+1] | (decompressed[dPos+2] << 8);
+                const blockData = decompressed.slice(dPos, dPos + blockSize);
+                
+                // Read Time Increment
+                const timeInc = blockData[1] | (blockData[2] << 8);
+                time += timeInc;
+                
+                // Scan for actions in this block
+                let aPos = 5; // Start of actions
+                while (aPos < blockData.length - 10) {
+                    const actionId = blockData[aPos];
+                    if (actionId === 0x10) {
+                        // Action 0x10: Ability Command
+                        const abilityCode = String.fromCharCode(blockData[aPos+10], blockData[aPos+11], blockData[aPos+12], blockData[aPos+13]);
+                        const actionName = findActionNameByCode(abilityCode);
+                        
+                        if (actionName) {
+                            bo.push({
+                                time: Math.floor(time / 1000),
+                                gold: 0, wood: 0, food: 0, foodMax: 0,
+                                action: actionName,
+                                icons: [actionName]
+                            });
+                        }
+                        aPos += 14; // Approximate size
+                    } else if (actionId === 0x11) {
+                        aPos += 22;
+                    } else if (actionId === 0x12) {
+                        aPos += 10;
+                    } else {
+                        aPos++;
+                    }
+                }
+                dPos += blockSize;
+            } else if (blockId === 0x17) {
+                dPos += 4; // Skip info
+            } else {
+                dPos++;
+            }
+        }
+
+        if (bo.length > 0) {
+            applyBuildOrder(bo, file.name.replace('.w3g', ''));
+        } else {
+            alert("Could not find any build actions in this replay. Note: Only major build/train actions are detected.");
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("Error parsing replay! This parser is experimental.");
+    }
+    e.target.value = '';
+}
+
+// Map of common WC3 internal codes to names
+const ABILITY_CODES = {
+    'hpea': 'Peasant', 'hfoo': 'Footman', 'hkni': 'Knight', 'hrit': 'Rifleman', 'hmtm': 'Mortar Team',
+    'hgyr': 'Flying Machine', 'hgry': 'Gryphon Rider', 'hsor': 'Sorceress', 'hpri': 'Priest', 'hmsy': 'Spellbreaker',
+    'hwat': 'Water Elemental', 'hpal': 'Paladin', 'hamg': 'Archmage', 'hmtk': 'Mountain King', 'hblm': 'Blood Mage',
+    'hhou': 'Farm', 'hwtw': 'Scout Tower', 'halt': 'Altar of Kings', 'hbar': 'Barracks', 'hbla': 'Blacksmith',
+    'hcas': 'Castle', 'hkee': 'Keep', 'htow': 'Town Hall', 'hlum': 'Lumber Mill', 'hars': 'Arcane Sanctum',
+    'hwsy': 'Workshop', 'hvlt': 'Arcane Vault', 'hgtw': 'Guard Tower', 'hatw': 'Cannon Tower', 'hbtw': 'Arcane Tower',
+    
+    'opeo': 'Peon', 'ogru': 'Grunt', 'orai': 'Raider', 'otae': 'Tauren', 'otrj': 'Troll Headhunter',
+    'ocat': 'Demolisher', 'okod': 'Kodo Beast', 'owyv': 'Wind Rider', 'odoc': 'Witch Doctor', 'oshm': 'Shaman',
+    'ospw': 'Spirit Walker', 'ofar': 'Far Seer', 'otch': 'Tauren Chieftain', 'oshd': 'Shadow Hunter', 'obm': 'Blademaster',
+    'ogre': 'Great Hall', 'ostr': 'Stronghold', 'ofor': 'Fortress', 'oalt': 'Altar of Storms', 'obar': 'Barracks',
+    'ofor': 'War Mill', 'obea': 'Beastiary', 'oshy': 'Spirit Lodge', 'otau': 'Tauren Totem', 'ovoo': 'Voodoo Lounge',
+    'obur': 'Orc Burrow', 'owtg': 'Watch Tower',
+    
+    'uaco': 'Acolyte', 'ugho': 'Ghoul', 'ucrypt': 'Crypt Fiend', 'uabo': 'Abomination', 'umvc': 'Meat Wagon',
+    'uobs': 'Obsidian Statue', 'ufro': 'Frost Wyrm', 'ugar': 'Gargoyle', 'uban': 'Banshee', 'unec': 'Necromancer',
+    'udkn': 'Death Knight', 'ulch': 'Lich', 'udrd': 'Dreadlord', 'ucry': 'Crypt Lord',
+    'unec': 'Necropolis', 'uhall': 'Halls of the Dead', 'ublk': 'Black Citadel', 'uabc': 'Altar of Darkness',
+    'uzig': 'Ziggurat', 'unp1': 'Nerubian Tower', 'unp2': 'Spirit Tower', 'ugra': 'Graveyard', 'ucry': 'Crypt',
+    'utem': 'Temple of the Damned', 'uslh': 'Slaughterhouse', 'uapb': 'Ancient Protectors', 'utom': 'Tomb of Relics',
+    
+    'ewsp': 'Wisp', 'earc': 'Archer', 'hunt': 'Huntress', 'ebal': 'Glaive Thrower', 'edry': 'Dryad',
+    'edon': 'Druid of the Claw', 'edoc': 'Druid of the Talon', 'emtg': 'Mountain Giant', 'ehip': 'Hippogryph',
+    'efon': 'Treant', 'edem': 'Demon Hunter', 'ekee': 'Keeper of the Grove', 'emgp': 'Priestess of the Moon', 'ewrd': 'Warden',
+    'etoe': 'Tree of Life', 'etoa': 'Tree of Ages', 'etoe': 'Tree of Eternity', 'eate': 'Altar of Elders',
+    'eaoo': 'Ancient of War', 'eaom': 'Ancient of Lore', 'eaoe': 'Ancient of Wind', 'eaol': 'Ancient of Lore',
+    'eden': 'Ancient of Wonders', 'eate': 'Ancient Protector', 'emow': 'Moon Well', 'edhr': 'Hunter\'s Hall'
+};
+
+function findActionNameByCode(code) {
+    code = code.toLowerCase();
+    return ABILITY_CODES[code] || null;
+}
+
+// Unused logic removed.
 // --- Feedback System ---
 const feedbackBtn = document.getElementById('feedbackBtn');
 const feedbackModal = document.getElementById('feedbackModal');
@@ -1433,3 +1689,8 @@ if (feedbackBtn && feedbackModal && closeFeedbackBtn && submitFeedbackBtn) {
     });
 }
 // -----------------------------
+
+// Start
+initTimeline();
+updateDisplay();
+

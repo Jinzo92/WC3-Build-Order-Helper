@@ -122,6 +122,20 @@
     "time": 90,
     "gold": 0,
     "wood": 0,
+    "food": 12,
+    "foodMax": 18,
+    "action": "train Pala",
+    "icons": [
+      "Paladin"
+    ],
+    "useSound": true,
+    "sound": "voice/train hero.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 95,
+    "gold": 0,
+    "wood": 0,
     "food": 11,
     "foodMax": 12,
     "action": "6. new Worker -> Gold",
@@ -135,35 +149,37 @@
     "hasPlayedSound": false
   },
   {
-    "time": 95,
-    "gold": 0,
-    "wood": 0,
-    "food": 12,
-    "foodMax": 18,
-    "action": "train Pala",
-    "icons": [
-      "Paladin"
-    ],
-    "useSound": true,
-    "sound": "voice/train hero.mp3",
-    "hasPlayedSound": false
-  },
-  {
     "time": 105,
     "gold": 0,
     "wood": 0,
     "food": 18,
     "foodMax": 24,
-    "action": "train 1. Rifle",
+    "action": "train 1. Rifle + remember another Worker",
     "icons": [
       "Rifleman"
+    ],
+    "useSound": true,
+    "sound": "voice/base.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 110,
+    "gold": 0,
+    "wood": 0,
+    "food": 21,
+    "foodMax": 24,
+    "action": "last worker -> 3. Farm STOP Worker production",
+    "icons": [
+      "Peasant",
+      "Arrow Right",
+      "Farm"
     ],
     "useSound": false,
     "sound": "warcraft/aaaaahhhh.mp3",
     "hasPlayedSound": false
   },
   {
-    "time": 110,
+    "time": 120,
     "gold": 0,
     "wood": 0,
     "food": 21,
@@ -178,22 +194,6 @@
     ],
     "useSound": true,
     "sound": "voice/fix army.mp3",
-    "hasPlayedSound": false
-  },
-  {
-    "time": 120,
-    "gold": 0,
-    "wood": 0,
-    "food": 21,
-    "foodMax": 24,
-    "action": "last worker -> 3. Farm",
-    "icons": [
-      "Peasant",
-      "Arrow Right",
-      "Farm"
-    ],
-    "useSound": false,
-    "sound": "warcraft/aaaaahhhh.mp3",
     "hasPlayedSound": false
   },
   {
@@ -291,7 +291,7 @@
     "hasPlayedSound": false
   },
   {
-    "time": 305,
+    "time": 280,
     "gold": 0,
     "wood": 0,
     "food": 33,
@@ -305,7 +305,7 @@
     "hasPlayedSound": false
   },
   {
-    "time": 335,
+    "time": 315,
     "gold": 0,
     "wood": 0,
     "food": 33,
@@ -319,7 +319,7 @@
     "hasPlayedSound": false
   },
   {
-    "time": 360,
+    "time": 335,
     "gold": 0,
     "wood": 0,
     "food": 36,
@@ -333,22 +333,7 @@
     "hasPlayedSound": false
   },
   {
-    "time": 415,
-    "gold": 0,
-    "wood": 0,
-    "food": 36,
-    "foodMax": 44,
-    "action": "BM + Sanctum",
-    "icons": [
-      "Blood Mage",
-      "Arcane Sanctum"
-    ],
-    "useSound": true,
-    "sound": "voice/train hero.mp3",
-    "hasPlayedSound": false
-  },
-  {
-    "time": 450,
+    "time": 380,
     "gold": 0,
     "wood": 0,
     "food": 42,
@@ -362,7 +347,7 @@
     "hasPlayedSound": false
   },
   {
-    "time": 485,
+    "time": 400,
     "gold": 0,
     "wood": 0,
     "food": 44,
@@ -377,7 +362,7 @@
     "hasPlayedSound": false
   },
   {
-    "time": 515,
+    "time": 430,
     "gold": 0,
     "wood": 0,
     "food": 0,
@@ -389,6 +374,21 @@
     ],
     "useSound": true,
     "sound": "voice/base.mp3",
+    "hasPlayedSound": false
+  },
+  {
+    "time": 3500,
+    "gold": 0,
+    "wood": 0,
+    "food": 36,
+    "foodMax": 44,
+    "action": "BM + Sanctum",
+    "icons": [
+      "Blood Mage",
+      "Arcane Sanctum"
+    ],
+    "useSound": true,
+    "sound": "voice/train hero.mp3",
     "hasPlayedSound": false
   }
 ]
