@@ -1046,3 +1046,30 @@ select.editor-input option {
 .entity-select-trigger img, .entity-option img, .event-icon-item, .upcoming-icon-item, .history-icon-item {
     background: rgba(0,0,0,0.4);
 }
+
+/* How To Use Button Entrance Animation */
+.how-to-use-entrance {
+    animation: howToUseFlyIn 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    box-shadow: 0 0 30px rgba(212, 160, 23, 0.4);
+}
+
+@keyframes howToUseFlyIn {
+    0% {
+        transform: translate(var(--start-x), var(--start-y)) scale(3);
+        opacity: 0;
+        box-shadow: 0 0 100px rgba(212, 160, 23, 0.8);
+    }
+    10% {
+        opacity: 1;
+    }
+    60% {
+        transform: translate(var(--start-x), var(--start-y)) scale(3);
+        opacity: 1;
+        box-shadow: 0 0 100px rgba(212, 160, 23, 0.8);
+    }
+    100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+        box-shadow: none;
+    }
+}

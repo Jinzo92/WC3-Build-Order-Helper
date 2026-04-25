@@ -1610,7 +1610,7 @@ async function handleReplayUpload(e) {
 
     } catch (err) {
         console.error(err);
-        alert("Error parsing replay! This parser is experimental.");
+        alert("Error parsing replay: " + err.message + "\n\nThis parser is experimental and might not support all WC3 versions.");
     }
     e.target.value = '';
 }
