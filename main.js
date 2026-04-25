@@ -1521,64 +1521,54 @@ async function handleReplayUpload(e) {
         
         if (data.length < 48) throw new Error("File too small to be a WC3 replay.");
 
-        // --- W3G Parsing ---
-        // 1. Decompress Blocks
-        let decompressed = new Uint8Array(0);
+        // --- W3G Parsing (based on w3gjs reference) ---
+        // 1. Parse header
         const headerSize = data[28] | (data[29] << 8) | (data[30] << 16) | (data[31] << 24);
-        let pos = headerSize; 
-        let lastError = "";
-        // Detect Reforged block format: check if 0x78 (Zlib header) is at +12 instead of +8
-        let blockExtraBytes = 0;
-        if (data.length > headerSize + 13 && data[headerSize + 8 + 4] === 0x78) {
-            blockExtraBytes = 4; // Reforged: 4 extra bytes before Zlib data in each block
-        }
+        
+        // 2. Detect Reforged via buildNo in sub-header (offset 56)
+        const buildNo = data[56] | (data[57] << 8);
+        const isReforged = buildNo >= 6089;
+        // Reforged: blockSize(2) + padding(2) + decompSize(2) + unknown(6) = 12
+        // Classic:  blockSize(2) + decompSize(2) + unknown(4) = 8
+        const blockHeaderSize = isReforged ? 12 : 8;
+        
+        // 3. Decompress all blocks
+        let decompressed = new Uint8Array(0);
+        let pos = headerSize;
+        let blockCount = 0;
 
-        while (pos < data.length - 8) {
-            const compSize = data[pos] | (data[pos+1] << 8);
-            const decompSize = data[pos+2] | (data[pos+3] << 8);
+        while (pos < data.length - blockHeaderSize) {
+            const blockSize = data[pos] | (data[pos+1] << 8);
             
-            if (compSize === 0) {
-                pos++;
-                continue;
-            }
-
-            pos += 8; // skip block header (2+2+4)
+            if (blockSize === 0) break;
             
-            const totalBlockData = compSize + blockExtraBytes;
-            if (pos + totalBlockData > data.length) break;
+            // Skip the block header to reach compressed data
+            pos += blockHeaderSize;
+            
+            if (pos + blockSize > data.length) break;
 
             try {
-                // Skip extra bytes (0 for classic, 4 for Reforged) to reach Zlib data
-                const block = data.slice(pos + blockExtraBytes, pos + blockExtraBytes + compSize);
-                const inflated = pako.inflate(block);
+                const block = data.slice(pos, pos + blockSize);
+                // Use streaming Inflate with Z_SYNC_FLUSH (=2) for partial blocks
+                const inflator = new pako.Inflate();
+                inflator.push(block, 2); // Z_SYNC_FLUSH
                 
-                const newDecomp = new Uint8Array(decompressed.length + inflated.length);
-                newDecomp.set(decompressed);
-                newDecomp.set(inflated, decompressed.length);
-                decompressed = newDecomp;
+                if (inflator.result && inflator.result.length > 0) {
+                    const newDecomp = new Uint8Array(decompressed.length + inflator.result.length);
+                    newDecomp.set(decompressed);
+                    newDecomp.set(inflator.result, decompressed.length);
+                    decompressed = newDecomp;
+                    blockCount++;
+                }
             } catch (inflateErr) {
-                lastError = String(inflateErr);
                 console.warn("Block at " + pos + " failed: ", String(inflateErr));
             }
             
-            pos += totalBlockData;
+            pos += blockSize;
         }
 
         if (decompressed.length === 0) {
-            let hex = "";
-            for (let i = 0; i < Math.min(data.length, 50); i++) {
-                hex += data[i].toString(16).padStart(2, '0') + " ";
-            }
-            // Get first block info for debug
-            let blockDebug = "No blocks found.";
-            if (data.length > headerSize + 4) {
-                const c = data[headerSize] | (data[headerSize+1] << 8);
-                const d = data[headerSize+2] | (data[headerSize+3] << 8);
-                let firstBytes = "";
-                for(let j=0; j<8; j++) if(data[headerSize+8+j] !== undefined) firstBytes += data[headerSize+8+j].toString(16).padStart(2,'0') + " ";
-                blockDebug = `First Block Header: Comp=${c}, Decomp=${d}. Data prefix: ${firstBytes}`;
-            }
-            throw new Error(`Decompression failed.\n${blockDebug}\nChecked: ${pos} bytes.\n\nFirst 50 bytes (Hex):\n${hex}`);
+            throw new Error("Decompression failed (buildNo=" + buildNo + ", isReforged=" + isReforged + ", headerSize=" + headerSize + ", blockHeaderSize=" + blockHeaderSize + ")");
         }
 
         // 2. Scan Actions
