@@ -1577,39 +1577,31 @@ async function handleReplayUpload(e) {
         }
 
         if (decompressed.length === 0) {
-            // Diagnostic: try the first block manually and report details
+            // Let's do a tiny independent pako test
+            let pakoTest = "UNKNOWN";
+            try {
+                // Test a simple zlib block (compressing "test")
+                // "test" deflated: 78 9c 2b 49 2d 2e 01 00 04 5d 01 c1
+                const dummyBlock = new Uint8Array([0x78, 0x9c, 0x2b, 0x49, 0x2d, 0x2e, 0x01, 0x00, 0x04, 0x5d, 0x01, 0xc1]);
+                const dummyResult = pako.inflate(dummyBlock);
+                pakoTest = "OK, length=" + dummyResult.length;
+            } catch(e) {
+                pakoTest = "FAIL: " + e.stack;
+            }
+
             let diag = "buildNo=" + buildNo + ", isReforged=" + isReforged + ", headerSize=" + headerSize;
+            diag += "\nPako Dummy Test: " + pakoTest;
+            
             let testPos = headerSize + blockHeaderSize;
             const testBlockSize = data[headerSize] | (data[headerSize+1] << 8);
-            diag += "\nFirst blockSize=" + testBlockSize;
-            
             if (testPos + testBlockSize <= data.length) {
                 const testBlock = data.slice(testPos, testPos + testBlockSize);
-                diag += "\nBlock bytes[0..5]: " + Array.from(testBlock.slice(0,6)).map(b => b.toString(16).padStart(2,'0')).join(' ');
-                
-                // Try pako.inflate
                 try {
                     const r = pako.inflate(testBlock);
-                    diag += "\npako.inflate OK: " + r.length + " bytes";
+                    diag += "\npako.inflate OK: " + (r ? r.length : "r is falsy");
                 } catch(e1) {
-                    diag += "\npako.inflate FAIL: " + (e1.message || String(e1));
+                    diag += "\npako.inflate testBlock FAIL:\n" + e1.stack;
                 }
-                
-                // Try pako.Inflate streaming
-                try {
-                    const inf = new pako.Inflate();
-                    inf.push(testBlock, 2);
-                    diag += "\nInflate.push err=" + inf.err + " msg=" + inf.msg;
-                    diag += "\nInflate.result=" + (inf.result ? inf.result.length : "null");
-                    diag += "\nInflate.chunks=" + (inf.chunks ? inf.chunks.length : "undefined");
-                    if (inf.chunks && inf.chunks.length > 0) {
-                        diag += "\nFirst chunk len=" + inf.chunks[0].length;
-                    }
-                } catch(e2) {
-                    diag += "\nInflate.push FAIL: " + (e2.message || String(e2));
-                }
-            } else {
-                diag += "\nBlock exceeds file size!";
             }
             throw new Error("Decompression failed.\n" + diag);
         }
