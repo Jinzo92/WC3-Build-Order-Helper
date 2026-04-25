@@ -1568,7 +1568,36 @@ async function handleReplayUpload(e) {
         }
 
         if (decompressed.length === 0) {
-            throw new Error("Decompression failed (buildNo=" + buildNo + ", isReforged=" + isReforged + ", headerSize=" + headerSize + ", blockHeaderSize=" + blockHeaderSize + ")");
+            // Diagnostic: try the first block manually and report details
+            let diag = "buildNo=" + buildNo + ", isReforged=" + isReforged + ", headerSize=" + headerSize;
+            let testPos = headerSize + blockHeaderSize;
+            const testBlockSize = data[headerSize] | (data[headerSize+1] << 8);
+            diag += "\nFirst blockSize=" + testBlockSize;
+            
+            if (testPos + testBlockSize <= data.length) {
+                const testBlock = data.slice(testPos, testPos + testBlockSize);
+                diag += "\nBlock bytes[0..5]: " + Array.from(testBlock.slice(0,6)).map(b => b.toString(16).padStart(2,'0')).join(' ');
+                
+                // Try pako.inflate
+                try {
+                    const r = pako.inflate(testBlock);
+                    diag += "\npako.inflate OK: " + r.length + " bytes";
+                } catch(e1) {
+                    diag += "\npako.inflate FAIL: " + (e1.message || String(e1));
+                }
+                
+                // Try pako.Inflate streaming
+                try {
+                    const inf = new pako.Inflate();
+                    inf.push(testBlock, 2);
+                    diag += "\nInflate.push err=" + inf.err + " msg=" + inf.msg + " result=" + (inf.result ? inf.result.length : "null");
+                } catch(e2) {
+                    diag += "\nInflate.push FAIL: " + (e2.message || String(e2));
+                }
+            } else {
+                diag += "\nBlock exceeds file size!";
+            }
+            throw new Error("Decompression failed.\n" + diag);
         }
 
         // 2. Scan Actions
