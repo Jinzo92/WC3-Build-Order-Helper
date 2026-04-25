@@ -1599,7 +1599,12 @@ async function handleReplayUpload(e) {
                 try {
                     const inf = new pako.Inflate();
                     inf.push(testBlock, 2);
-                    diag += "\nInflate.push err=" + inf.err + " msg=" + inf.msg + " result=" + (inf.result ? inf.result.length : "null");
+                    diag += "\nInflate.push err=" + inf.err + " msg=" + inf.msg;
+                    diag += "\nInflate.result=" + (inf.result ? inf.result.length : "null");
+                    diag += "\nInflate.chunks=" + (inf.chunks ? inf.chunks.length : "undefined");
+                    if (inf.chunks && inf.chunks.length > 0) {
+                        diag += "\nFirst chunk len=" + inf.chunks[0].length;
+                    }
                 } catch(e2) {
                     diag += "\nInflate.push FAIL: " + (e2.message || String(e2));
                 }
