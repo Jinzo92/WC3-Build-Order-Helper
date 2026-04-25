@@ -1549,27 +1549,30 @@ async function handleReplayUpload(e) {
 
             try {
                 const block = data.slice(pos, pos + blockSize);
-                // Use streaming Inflate with Z_SYNC_FLUSH (=2) for partial blocks
+                // Use streaming Inflate with Z_SYNC_FLUSH (=2)
                 const inflator = new pako.Inflate();
+                
+                let chunks = [];
+                inflator.onData = function(chunk) {
+                    chunks.push(chunk);
+                };
+                
                 inflator.push(block, 2); // Z_SYNC_FLUSH
                 
-                // Z_SYNC_FLUSH puts output in chunks[], not result
-                let inflated = inflator.result;
-                if (!inflated && inflator.chunks && inflator.chunks.length > 0) {
-                    // Flatten chunks into single Uint8Array
+                if (inflator.err === 0 && chunks.length > 0) {
                     let totalLen = 0;
-                    for (const c of inflator.chunks) totalLen += c.length;
-                    inflated = new Uint8Array(totalLen);
+                    for (const c of chunks) totalLen += c.length;
+                    let inflated = new Uint8Array(totalLen);
                     let off = 0;
-                    for (const c of inflator.chunks) { inflated.set(c, off); off += c.length; }
-                }
-                
-                if (inflated && inflated.length > 0) {
+                    for (const c of chunks) { inflated.set(c, off); off += c.length; }
+                    
                     const newDecomp = new Uint8Array(decompressed.length + inflated.length);
                     newDecomp.set(decompressed);
                     newDecomp.set(inflated, decompressed.length);
                     decompressed = newDecomp;
                     blockCount++;
+                } else if (inflator.err !== 0) {
+                    console.warn("Block at " + pos + " inflate error: ", inflator.msg);
                 }
             } catch (inflateErr) {
                 console.warn("Block at " + pos + " failed: ", String(inflateErr));
