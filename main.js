@@ -1542,16 +1542,26 @@ async function handleReplayUpload(e) {
 
             try {
                 const block = data.slice(pos, pos + compSize);
-                // Optional: Check for Zlib header (0x78)
-                const inflated = pako.inflate(block);
+                let inflated;
+                try {
+                    inflated = pako.inflate(block);
+                } catch(e1) {
+                    // Reforged replays have 4 extra bytes before Zlib data
+                    try {
+                        inflated = pako.inflate(block.slice(4));
+                    } catch(e2) {
+                        // Try raw deflate as last resort
+                        inflated = pako.inflateRaw(block);
+                    }
+                }
                 
                 const newDecomp = new Uint8Array(decompressed.length + inflated.length);
                 newDecomp.set(decompressed);
                 newDecomp.set(inflated, decompressed.length);
                 decompressed = newDecomp;
             } catch (inflateErr) {
-                lastError = inflateErr.message;
-                console.warn("Block at " + pos + " failed: ", inflateErr.message);
+                lastError = String(inflateErr);
+                console.warn("Block at " + pos + " failed: ", String(inflateErr));
             }
             
             pos += compSize;
