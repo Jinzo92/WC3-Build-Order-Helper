@@ -1557,7 +1557,11 @@ async function handleReplayUpload(e) {
         }
 
         if (decompressed.length === 0) {
-            throw new Error("Decompression failed. Last error: " + lastError + " (Checked " + pos + " bytes)");
+            let hex = "";
+            for (let i = 0; i < Math.min(data.length, 50); i++) {
+                hex += data[i].toString(16).padStart(2, '0') + " ";
+            }
+            throw new Error("Decompression failed. Last error: " + lastError + "\nChecked: " + pos + " bytes.\n\nFirst 50 bytes (Hex):\n" + hex);
         }
 
         // 2. Scan Actions
