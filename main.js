@@ -1672,7 +1672,11 @@ async function handleReplayUpload(e) {
         if (bo.length > 0) {
             applyBuildOrder(bo, file.name.replace('.w3g', ''));
         } else {
-            alert("Could not find any build actions in this replay. Note: Only major build/train actions are detected.");
+            let hex = "";
+            for(let i=0; i<Math.min(decompressed.length, 100); i++) {
+                hex += decompressed[i].toString(16).padStart(2, '0') + " ";
+            }
+            alert("Could not find any build actions in this replay.\nFirst 100 decomp bytes:\n" + hex + "\nNote: Only major build/train actions are detected.");
         }
 
     } catch (err) {
