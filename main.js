@@ -1553,10 +1553,21 @@ async function handleReplayUpload(e) {
                 const inflator = new pako.Inflate();
                 inflator.push(block, 2); // Z_SYNC_FLUSH
                 
-                if (inflator.result && inflator.result.length > 0) {
-                    const newDecomp = new Uint8Array(decompressed.length + inflator.result.length);
+                // Z_SYNC_FLUSH puts output in chunks[], not result
+                let inflated = inflator.result;
+                if (!inflated && inflator.chunks && inflator.chunks.length > 0) {
+                    // Flatten chunks into single Uint8Array
+                    let totalLen = 0;
+                    for (const c of inflator.chunks) totalLen += c.length;
+                    inflated = new Uint8Array(totalLen);
+                    let off = 0;
+                    for (const c of inflator.chunks) { inflated.set(c, off); off += c.length; }
+                }
+                
+                if (inflated && inflated.length > 0) {
+                    const newDecomp = new Uint8Array(decompressed.length + inflated.length);
                     newDecomp.set(decompressed);
-                    newDecomp.set(inflator.result, decompressed.length);
+                    newDecomp.set(inflated, decompressed.length);
                     decompressed = newDecomp;
                     blockCount++;
                 }
