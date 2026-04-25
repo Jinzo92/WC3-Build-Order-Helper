@@ -1524,7 +1524,8 @@ async function handleReplayUpload(e) {
         // --- W3G Parsing ---
         // 1. Decompress Blocks
         let decompressed = new Uint8Array(0);
-        let pos = 48; // Skip header
+        const headerSize = data[28] | (data[29] << 8) | (data[30] << 16) | (data[31] << 24);
+        let pos = headerSize; 
         let lastError = "";
         while (pos < data.length - 8) {
             const compSize = data[pos] | (data[pos+1] << 8);
