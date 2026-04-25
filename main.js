@@ -1547,7 +1547,26 @@ async function handleReplayUpload(e) {
 
             try {
                 const block = data.slice(pos, pos + blockSize);
-                const inflated = pako.inflate(block); // Try direct inflate
+                const inflator = new pako.Inflate();
+                
+                // Push block with Z_SYNC_FLUSH
+                inflator.push(block, 2); 
+                
+                // Because WC3 blocks don't have a Z_STREAM_END marker,
+                // Pako 2.x never assigns inflator.result and may not flush to chunks
+                // if the decompressed size (8192) is less than the default chunkSize (16384).
+                // The decompressed data is sitting in inflator.strm.output!
+                let inflated;
+                if (inflator.chunks && inflator.chunks.length > 0) {
+                    let totalLen = 0;
+                    for (const c of inflator.chunks) totalLen += c.length;
+                    inflated = new Uint8Array(totalLen);
+                    let off = 0;
+                    for (const c of inflator.chunks) { inflated.set(c, off); off += c.length; }
+                } else if (inflator.strm && inflator.strm.output && inflator.strm.next_out > 0) {
+                    // Extract directly from the internal stream buffer
+                    inflated = inflator.strm.output.subarray(0, inflator.strm.next_out);
+                }
                 
                 if (inflated && inflated.length > 0) {
                     const newDecomp = new Uint8Array(decompressed.length + inflated.length);
@@ -1555,6 +1574,8 @@ async function handleReplayUpload(e) {
                     newDecomp.set(inflated, decompressed.length);
                     decompressed = newDecomp;
                     blockCount++;
+                } else {
+                    console.warn("Block at " + pos + " produced no output.");
                 }
             } catch (inflateErr) {
                 console.warn("Block at " + pos + " failed: ", String(inflateErr));
