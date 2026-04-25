@@ -1577,32 +1577,48 @@ async function handleReplayUpload(e) {
         }
 
         if (decompressed.length === 0) {
-            // Let's do a tiny independent pako test
-            let pakoTest = "UNKNOWN";
-            try {
-                // Test a simple zlib block (compressing "test")
-                // "test" deflated: 78 9c 2b 49 2d 2e 01 00 04 5d 01 c1
-                const dummyBlock = new Uint8Array([0x78, 0x9c, 0x2b, 0x49, 0x2d, 0x2e, 0x01, 0x00, 0x04, 0x5d, 0x01, 0xc1]);
-                const dummyResult = pako.inflate(dummyBlock);
-                pakoTest = "OK, length=" + dummyResult.length;
-            } catch(e) {
-                pakoTest = "FAIL: " + e.stack;
-            }
-
             let diag = "buildNo=" + buildNo + ", isReforged=" + isReforged + ", headerSize=" + headerSize;
-            diag += "\nPako Dummy Test: " + pakoTest;
             
-            let testPos = headerSize + blockHeaderSize;
-            const testBlockSize = data[headerSize] | (data[headerSize+1] << 8);
-            if (testPos + testBlockSize <= data.length) {
-                const testBlock = data.slice(testPos, testPos + testBlockSize);
-                try {
-                    const r = pako.inflate(testBlock);
-                    diag += "\npako.inflate OK: " + (r ? r.length : "r is falsy");
-                } catch(e1) {
-                    diag += "\npako.inflate testBlock FAIL:\n" + e1.stack;
+            // Check first 3 blocks
+            let blockPos = headerSize;
+            let blocks = [];
+            for (let i=0; i<3; i++) {
+                if (blockPos + blockHeaderSize <= data.length) {
+                    const bSize = data[blockPos] | (data[blockPos+1] << 8);
+                    if (bSize > 0 && blockPos + blockHeaderSize + bSize <= data.length) {
+                        const blockData = data.slice(blockPos + blockHeaderSize, blockPos + blockHeaderSize + bSize);
+                        blocks.push(blockData);
+                        diag += "\nBlock " + i + " header: " + blockData[0].toString(16) + " " + blockData[1].toString(16) + " (size " + bSize + ")";
+                    }
+                    blockPos += blockHeaderSize + bSize;
                 }
             }
+            
+            if (blocks.length > 0) {
+                // Try inflating block 0 alone using Inflate without finish
+                try {
+                    const inf = new pako.Inflate();
+                    inf.push(blocks[0], 2); // Z_SYNC_FLUSH
+                    diag += "\ninf.push(b[0], 2) chunks: " + (inf.chunks ? inf.chunks.length : "undefined");
+                } catch(e) {}
+                
+                // Try pako.inflate on block 0 with windowBits: 15
+                try {
+                    const r = pako.inflate(blocks[0]);
+                    diag += "\npako.inflate(b[0]) OK";
+                } catch(e) {
+                    diag += "\npako.inflate(b[0]) FAIL";
+                }
+
+                // Try stripping zlib header (first 2 bytes) and using inflateRaw
+                try {
+                    const r = pako.inflateRaw(blocks[0].slice(2));
+                    diag += "\npako.inflateRaw(b[0].slice(2)) OK";
+                } catch(e) {
+                    diag += "\npako.inflateRaw FAIL";
+                }
+            }
+
             throw new Error("Decompression failed.\n" + diag);
         }
 
