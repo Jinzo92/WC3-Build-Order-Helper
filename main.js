@@ -2059,6 +2059,41 @@ if (howToUseBtn && howToUseModal) {
     if (cardImportingBO) cardImportingBO.addEventListener('click', () => showSubview(subviewImportingBO, '📋 Importing a Build order via Text'));
 }
 
+// --- Lightbox for Tutorial Images ---
+const lightboxModal = document.getElementById('lightboxModal');
+const lightboxImg = document.getElementById('lightboxImg');
+const closeLightbox = document.getElementById('closeLightbox');
+
+if (lightboxModal && lightboxImg && closeLightbox) {
+    // Add click listener to all tutorial images
+    document.querySelectorAll('.tutorial-img').forEach(img => {
+        img.addEventListener('click', () => {
+            lightboxImg.src = img.src;
+            lightboxImg.alt = img.alt;
+            lightboxModal.classList.add('active');
+        });
+    });
+
+    // Close lightbox on button click
+    closeLightbox.addEventListener('click', () => {
+        lightboxModal.classList.remove('active');
+    });
+
+    // Close lightbox on clicking outside the image
+    lightboxModal.addEventListener('click', (e) => {
+        if (e.target === lightboxModal) {
+            lightboxModal.classList.remove('active');
+        }
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && lightboxModal.classList.contains('active')) {
+            lightboxModal.classList.remove('active');
+        }
+    });
+}
+
 // Start
 initTimeline();
 updateDisplay();

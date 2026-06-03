@@ -1303,4 +1303,12 @@ select.editor-input option {
     border: 1px solid var(--border-color);
     margin-top: 10px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    cursor: zoom-in;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.tutorial-img:hover {
+    transform: scale(1.025);
+    border-color: var(--accent-gold);
+    box-shadow: 0 10px 30px rgba(212, 160, 23, 0.3), var(--glow-gold);
 }
