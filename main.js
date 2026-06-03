@@ -1765,9 +1765,6 @@ function findActionNameByCode(code) {
     return ABILITY_CODES[code] || null;
 }
 
-
-// --- Paste Build Order Text Parser ---
-
 function parseBuildOrderText(text) {
     const lines = text.split('\n').map(l => l.replace(/\r/g, ''));
     const bo = [];
@@ -1776,14 +1773,28 @@ function parseBuildOrderText(text) {
         const line = lines[i].trim();
         if (!line) continue;
         
-        // Match lines like "00:18	Built an Altar of Kings" or "00:18  Built an Altar of Kings"
-        const timeMatch = line.match(/^(\d{1,2}):(\d{2})\s+(.+)$/);
-        if (!timeMatch) continue; // Skip non-action lines (numbers, HERO, TECH tags)
+        let mins, secs, actionText;
+
+        // --- Format 1: "00:18  Built an Altar of Kings" (wc3.no style) ---
+        const fmt1 = line.match(/^(\d{1,2}):(\d{2})\s+(.+)$/);
+
+        // --- Format 2: "1\t00:00\t4 pesants to gold" (tab-separated with row number) ---
+        const fmt2 = line.match(/^\d+\t(\d{1,2}):(\d{2})\t(.+)$/);
+
+        if (fmt1) {
+            mins = parseInt(fmt1[1]);
+            secs = parseInt(fmt1[2]);
+            actionText = fmt1[3].trim();
+        } else if (fmt2) {
+            mins = parseInt(fmt2[1]);
+            secs = parseInt(fmt2[2]);
+            // Strip any trailing tab-only columns (e.g. trailing "\t\t")
+            actionText = fmt2[3].replace(/\t+.*$/, '').trim();
+        } else {
+            continue; // Skip lines that don't match any known format
+        }
         
-        const mins = parseInt(timeMatch[1]);
-        const secs = parseInt(timeMatch[2]);
         const totalSeconds = mins * 60 + secs;
-        const actionText = timeMatch[3].trim();
         
         // Skip "Cancelled" actions
         if (actionText.toLowerCase().startsWith('cancelled')) continue;
@@ -1810,13 +1821,20 @@ function parseBuildOrderText(text) {
             actionPrefix = 'Upgrade ';
         }
         
-        // Check if next line is a tag like HERO, TECH, or a number
+        // Check next line for tags (HERO, TECH, supply "X/Y", or plain number)
         let subtext = '';
+        let food = 0, foodMax = 0;
         if (i + 1 < lines.length) {
             const nextLine = lines[i + 1].trim();
+            const supplyMatch = nextLine.match(/^(\d+)\/(\d+)$/); // e.g. "5/12"
             if (nextLine === 'HERO') { subtext = 'Hero'; i++; }
             else if (nextLine === 'TECH') { subtext = 'Tech Upgrade'; i++; }
-            else if (/^\d+$/.test(nextLine)) { subtext = '#' + nextLine; i++; }
+            else if (supplyMatch) {
+                food = parseInt(supplyMatch[1]);
+                foodMax = parseInt(supplyMatch[2]);
+                subtext = `${food}/${foodMax}`;
+                i++;
+            } else if (/^\d+$/.test(nextLine)) { subtext = '#' + nextLine; i++; }
         }
         
         // Determine icon name
@@ -1838,8 +1856,8 @@ function parseBuildOrderText(text) {
             time: totalSeconds,
             gold: 0, // Left blank per user request
             wood: 0, // Left blank per user request
-            food: 0, // Left blank per user request
-            foodMax: 0, // Left blank per user request
+            food: food,
+            foodMax: foodMax,
             action: actionPrefix ? actionPrefix + entityName : entityName,
             subtext: subtext,
             icons: [iconName]
