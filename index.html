@@ -40,7 +40,7 @@
                     })();
                 </script>
                 <div class="header-titles" style="flex: 1; text-align: center;">
-                    <h1>Build Order Helper <span style="font-size: 0.8rem; vertical-align: middle; opacity: 0.6; font-family: 'Inter', sans-serif;">v0.9.4</span></h1>
+                    <h1>Build Order Helper <span style="font-size: 0.8rem; vertical-align: middle; opacity: 0.6; font-family: 'Inter', sans-serif;">v0.9.7</span></h1>
                 </div>
                 <div style="width: 130px;"></div> <!-- Spacer for symmetry -->
             </div>
@@ -68,7 +68,7 @@
 
         <div class="play-area">
             <div class="made-by-wrapper" style="text-align: right; margin-bottom: 8px;">
-                <span class="made-by" style="font-style: italic; color: rgba(255,255,255,0.4); font-size: 0.95rem; font-family: 'Outfit', sans-serif;">made by Jinzo | v0.9.4</span>
+                <span class="made-by" style="font-style: italic; color: rgba(255,255,255,0.4); font-size: 0.95rem; font-family: 'Outfit', sans-serif;">made by Jinzo | v0.9.7</span>
             </div>
             <main class="timeline-wrapper">
                     <div class="timeline-window" id="timelineWindow">
@@ -94,8 +94,11 @@
                 </div>
             </div>
 
-            <aside class="history-sidebar">
-                <h3>Build Order Log</h3>
+            <aside class="history-sidebar" id="historySidebar">
+                <div class="sidebar-header">
+                    <h3>Build Order Log</h3>
+                    <button class="toggle-sidebar-btn" id="toggleSidebarBtn" title="Build Order Log einklappen">−</button>
+                </div>
                 <div class="history-list" id="historyList">
                     <!-- History injected by JS -->
                 </div>
@@ -139,15 +142,8 @@
                     </div>
                 </div>
                 <div style="margin-left: auto; display: flex; align-items: center; gap: 15px;">
-                    <button id="headerSaveBtn" class="btn primary-btn small-btn" style="padding: 6px 12px; font-size: 0.8rem; background: var(--accent-gold); color: black;" title="Save current changes to file">
-                        💾 Save File
-                    </button>
-                    <div id="saveModeIndicator" style="font-size: 0.7rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-                        <span id="saveModeText">📥 Download Mode</span>
-                        <span id="saveModeHelp" title="Why Download Mode? Direct overwriting requires a secure context (https/localhost) or modern browser permission." style="cursor: help; opacity: 0.6;">ⓘ</span>
-                    </div>
                     <div id="currentBOInfo" style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
-                        <div style="font-size: 0.85rem; color: var(--text-muted);">Aktuelle BO: <span id="currentBOFileName" style="color: var(--accent-gold); font-weight: 600;">None</span></div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">Active BO: <span id="currentBOFileName" style="color: var(--accent-gold); font-weight: 600;">None</span></div>
                         <div id="unsavedWarning" style="font-size: 0.75rem; color: #ef4444; opacity: 0; transition: opacity 0.3s;">(unsaved changes in the BO)</div>
                     </div>
                 </div>
@@ -159,10 +155,9 @@
                     <input type="number" id="delayInput" class="editor-input" value="5" min="0" max="30" style="width: 60px; padding: 6px 10px; font-size: 0.95rem; text-align: center;">
                     <span style="color: var(--text-muted); font-size: 0.75rem; opacity: 0.7;">Timer counts down before 00:00</span>
                 </div>
-                <button id="importReplayBtn" class="btn primary-btn small-btn" style="background: linear-gradient(135deg, #1e3a8a, #3b82f6); border: 1px solid rgba(255,255,255,0.2); height: 100%;">
-                    🎮 Import BO from a replay
+                <button id="pasteBOBtn" class="btn primary-btn small-btn" style="background: linear-gradient(135deg, #7c3aed, #a855f7); border: 1px solid rgba(255,255,255,0.2); height: 100%;">
+                    📋 Paste Build Order
                 </button>
-                <input type="file" id="replayInput" accept=".w3g" style="display: none;">
             </div>
             <div class="modal-actions" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
                 <div style="display: flex; gap: 10px;">
@@ -224,6 +219,183 @@
             <div class="modal-footer">
                 <button id="closeFeedbackBtn" class="btn secondary-btn">Cancel</button>
                 <button id="submitFeedbackBtn" class="btn primary-btn">Go to GitHub Issues</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paste Build Order Modal -->
+    <div id="pasteBOModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>📋 Paste Build Order</h2>
+                <button id="closePasteBOModal" class="icon-btn">❌</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 10px; line-height: 1.5;">
+                    Copy a build order from <a href="https://wc3.no" target="_blank" style="color: var(--accent-gold); text-decoration:underline;">wc3.no</a> or any similar site and paste it below.
+                    The format should look like:<br>
+                    <code style="font-size:0.8rem; color:#a78bfa; background:rgba(0,0,0,0.3); padding:2px 6px; border-radius:4px;">00:18  Built an Altar of Kings</code>
+                </p>
+                <textarea id="pasteBOTextarea" class="editor-input" 
+                    placeholder="Paste your build order text here...&#10;&#10;Example:&#10;00:02  Built a Peasant&#10;00:18  Built an Altar of Kings&#10;00:34  Built a Blacksmith&#10;00:49  Built a Barracks&#10;01:32  Built a Paladin&#10;01:54  Built a Rifleman&#10;..."
+                    style="width:100%; height: 300px; resize: vertical; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.85rem; line-height: 1.6; padding: 15px; border-radius: 10px; white-space: pre;"></textarea>
+                <div id="pasteBOPreview" style="display:none; margin-top: 12px; padding: 12px 15px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; font-size: 0.85rem; color: #10b981;"></div>
+                <div id="pasteBOError" style="display:none; margin-top: 12px; padding: 12px 15px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 10px; color: #ef4444; font-size: 0.85rem;"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelPasteBOBtn" class="btn secondary-btn">Cancel</button>
+                <button id="applyPasteBOBtn" class="btn primary-btn" style="background: linear-gradient(135deg, #7c3aed, #a855f7);">✅ Import Build Order</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- How To Use Modal -->
+    <div id="howToUseModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header" style="position: relative; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <button id="backToMenuBtn" class="back-to-menu-btn" style="display: none;">◀ Back</button>
+                    <h2 id="howToUseTitle">📖 How to Use Build Order Helper</h2>
+                </div>
+                <button id="closeHowToUseModal" class="icon-btn">❌</button>
+            </div>
+            <div class="modal-body" style="padding: 20px 25px;">
+                
+                <!-- Main Option Screen -->
+                <div id="howToUseMenu">
+                    <p style="font-size: 1.05rem; color: var(--text-muted); line-height: 1.6; text-align: center; margin-bottom: 25px;">
+                        Select a topic to learn how to use the Build Order Helper:
+                    </p>
+                    
+                    <div class="how-to-use-grid">
+                        <!-- Option 1: Using the Tool -->
+                        <div class="how-to-use-card" id="cardUsingTool">
+                            <span class="card-icon">🎮</span>
+                            <h3>Using the tool</h3>
+                        </div>
+                        
+                        <!-- Option 2: Editing a Build Order -->
+                        <div class="how-to-use-card" id="cardEditingBO">
+                            <span class="card-icon">✏️</span>
+                            <h3>Editing a Build order</h3>
+                        </div>
+                        
+                        <!-- Option 3: Importing via Text -->
+                        <div class="how-to-use-card" id="cardImportingBO">
+                            <span class="card-icon">📋</span>
+                            <h3>Importing a Build order via Text</h3>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Subview 1: Using the Tool -->
+                <div class="how-to-use-subview" id="subviewUsingTool">
+                    <p style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 18px;">How to use the tool:</p>
+                    <div class="guide-step-list">
+                        <div class="guide-step">
+                            <span class="guide-step-num">1</span>
+                            <div class="guide-step-content">
+                                <h4>Click the Editor button.</h4>
+                                <img src="icons/tutorial/how_1.jpg" alt="Step 1 – Editor button" class="tutorial-img">
+                            </div>
+                        </div>
+                        <div class="guide-step">
+                            <span class="guide-step-num">2</span>
+                            <div class="guide-step-content">
+                                <h4>Select a pre-made Build Order from the dropdown list and then click Save &amp; Apply.</h4>
+                                <img src="icons/tutorial/how_2.jpg" alt="Step 2 – Select Build Order" class="tutorial-img">
+                            </div>
+                        </div>
+                        <div class="guide-step">
+                            <span class="guide-step-num">3</span>
+                            <div class="guide-step-content">
+                                <h4>Press the Play button shortly before starting a new game so the timeline begins running.</h4>
+                                <img src="icons/tutorial/how_3.jpg" alt="Step 3 – Press Play" class="tutorial-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px; padding: 14px 18px; background: rgba(212, 160, 23, 0.08); border: 1px solid rgba(212, 160, 23, 0.3); border-radius: 12px; display: flex; gap: 12px; align-items: flex-start;">
+                        <span style="font-size: 1.3rem;">💡</span>
+                        <p style="margin: 0; font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;"><strong style="color: var(--accent-gold);">Tip:</strong> It is recommended to set up a hotkey for the Play button so you can start the timeline quickly without having to click it manually.</p>
+                    </div>
+                </div>
+                
+                <!-- Subview 2: Editing a Build Order -->
+                <div class="how-to-use-subview" id="subviewEditingBO">
+                    <p style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 18px;">How to edit a Build Order:</p>
+                    <div class="guide-step-list">
+                        <div class="guide-step">
+                            <span class="guide-step-num">1</span>
+                            <div class="guide-step-content">
+                                <h4>Open the Editor</h4>
+                                <p>Click the <strong>Editor</strong> button in the controls to open the interactive build order table.</p>
+                            </div>
+                        </div>
+                        <div class="guide-step">
+                            <span class="guide-step-num">2</span>
+                            <div class="guide-step-content">
+                                <h4>Adjust Events</h4>
+                                <p>Set the timestamps (format <code>MM:SS</code>), enter gold/wood costs, set the current and max supply (e.g. <code>12 / 18</code>), and edit the action description.</p>
+                            </div>
+                        </div>
+                        <div class="guide-step">
+                            <span class="guide-step-num">3</span>
+                            <div class="guide-step-content">
+                                <h4>Choose Icons</h4>
+                                <p>Use the icon selector to assign original Warcraft graphics for buildings, units, heroes or upgrades to each event.</p>
+                            </div>
+                        </div>
+                        <div class="guide-step">
+                            <span class="guide-step-num">4</span>
+                            <div class="guide-step-content">
+                                <h4>Save &amp; Export</h4>
+                                <p>Click <strong>Save &amp; Apply</strong> to apply your changes immediately. Use <strong>Download File</strong> to save your Build Order as a <code>.json</code> file.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Subview 3: Importing via Text -->
+                <div class="how-to-use-subview" id="subviewImportingBO">
+                    <p style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 18px;">How to import a Build Order:</p>
+                    <div class="guide-step-list">
+                        <div class="guide-step">
+                            <span class="guide-step-num">1</span>
+                            <div class="guide-step-content">
+                                <h4>Click the Editor button.</h4>
+                                <img src="icons/tutorial/import_1.jpg" alt="Step 1 – Click Editor" class="tutorial-img">
+                            </div>
+                        </div>
+                        <div class="guide-step">
+                            <span class="guide-step-num">2</span>
+                            <div class="guide-step-content">
+                                <h4>Click Paste Build Order.</h4>
+                                <img src="icons/tutorial/import_2.jpg" alt="Step 2 – Click Paste Build Order" class="tutorial-img">
+                            </div>
+                        </div>
+                        <div class="guide-step">
+                            <span class="guide-step-num">3</span>
+                            <div class="guide-step-content">
+                                <h4>Paste a build order list in the same format as shown in the example. You can, for example, copy a match summary from <a href="https://wc3.no" target="_blank" style="color: var(--accent-gold); text-decoration: underline;">WC3.NO</a>.</h4>
+                                <img src="icons/tutorial/import_3.jpg" alt="Step 3 – Paste Build Order list" class="tutorial-img">
+                            </div>
+                        </div>
+                        <div class="guide-step">
+                            <span class="guide-step-num">4</span>
+                            <div class="guide-step-content">
+                                <h4>Click Save &amp; Apply to use the imported Build Order.</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px; padding: 14px 18px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; display: flex; gap: 12px; align-items: flex-start;">
+                        <span style="font-size: 1.3rem;">⚠️</span>
+                        <p style="margin: 0; font-size: 0.9rem; color: var(--text-muted); line-height: 1.6;"><strong style="color: var(--accent-gold);">Important:</strong> Every new row must start with a time stamp in the format <code>00:00</code>.</p>
+                    </div>
+                </div>
+                
+            </div>
+            <div class="modal-footer" style="padding-top: 15px;">
+                <button id="closeHowToUseFooterBtn" class="btn primary-btn">Got it</button>
             </div>
         </div>
     </div>

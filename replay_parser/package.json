@@ -1,0 +1,11 @@
+{
+  "name": "wc3-replay-to-buildorder",
+  "version": "1.0.0",
+  "description": "Converts WC3 Replays to Build Order Helper JSON",
+  "main": "parser.js",
+  "dependencies": {
+    "w3gjs": "^2.1.2"
+  },
+  "author": "Antigravity",
+  "license": "MIT"
+}

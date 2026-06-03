@@ -1,3 +1,4 @@
+console.log('--- REPLAY PARSER v2.0 LOADED ---');
 const SUPPLY_ICON = `<img src="icons/Supply.png" alt="Supply">`;
 const GOLD_ICON = `<img src="icons/Gold.png" alt="Gold">`;
 const WOOD_ICON = `<img src="icons/Wood.png" alt="Wood">`;
@@ -653,6 +654,40 @@ function updateDisplay() {
     }
 }
 
+let timerWorker = null;
+
+function initTimerWorker() {
+    if (timerWorker) return;
+    try {
+        const workerCode = `
+            let timerId = null;
+            self.onmessage = function(e) {
+                if (e.data === 'start') {
+                    if (timerId) clearInterval(timerId);
+                    timerId = setInterval(() => {
+                        self.postMessage('tick');
+                    }, 50);
+                } else if (e.data === 'stop') {
+                    if (timerId) {
+                        clearInterval(timerId);
+                        timerId = null;
+                    }
+                }
+            };
+        `;
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        timerWorker = new Worker(URL.createObjectURL(blob));
+        timerWorker.onmessage = function(e) {
+            if (e.data === 'tick' && isRunning) {
+                elapsedTime = performance.now() - startTime;
+                updateDisplay();
+            }
+        };
+    } catch (err) {
+        console.warn("Web Worker could not be initialized, background timer accuracy might be reduced:", err);
+    }
+}
+
 function tick(timestamp) {
     if (!startTime) startTime = timestamp - elapsedTime;
     elapsedTime = timestamp - startTime;
@@ -669,11 +704,14 @@ function togglePlay() {
         isRunning = false;
         playPauseBtn.innerHTML = '<span id="playIcon">▶</span> Play';
         cancelAnimationFrame(animationFrameId);
+        if (timerWorker) timerWorker.postMessage('stop');
     } else {
         isRunning = true;
         playPauseBtn.innerHTML = '<span id="playIcon">⏸</span> Pause';
         startTime = performance.now() - elapsedTime;
         animationFrameId = requestAnimationFrame(tick);
+        initTimerWorker();
+        if (timerWorker) timerWorker.postMessage('start');
     }
 }
 
@@ -681,6 +719,7 @@ function resetTimer() {
     isRunning = false;
     playPauseBtn.innerHTML = '<span id="playIcon">▶</span> Play';
     cancelAnimationFrame(animationFrameId);
+    if (timerWorker) timerWorker.postMessage('stop');
     elapsedTime = -(savedDelay * 1000);
     startTime = 0;
     
@@ -1511,7 +1550,7 @@ async function handleReplayUpload(e) {
     if (!file) return;
 
     if (typeof pako === 'undefined') {
-        alert("Error: The compression library (pako) could not be loaded. If you are running this locally via file://, your browser might be blocking external scripts. Please try running via a local server or host it on GitHub Pages.");
+        alert("Error: The compression library (pako) could not be loaded. If you are running this locally via file://, your browser might be blocking external scripts.");
         return;
     }
 
@@ -1521,50 +1560,28 @@ async function handleReplayUpload(e) {
         
         if (data.length < 48) throw new Error("File too small to be a WC3 replay.");
 
-        // --- W3G Parsing (based on w3gjs reference) ---
-        // 1. Parse header
         const headerSize = data[28] | (data[29] << 8) | (data[30] << 16) | (data[31] << 24);
-        
-        // 2. Detect Reforged via buildNo in sub-header (offset 56)
         const buildNo = data[56] | (data[57] << 8);
         const isReforged = buildNo >= 6089;
-        // Reforged: blockSize(2) + padding(2) + decompSize(2) + unknown(6) = 12
-        // Classic:  blockSize(2) + decompSize(2) + unknown(4) = 8
         const blockHeaderSize = isReforged ? 12 : 8;
         
-        // 3. Decompress all blocks
         let decompressed = new Uint8Array(0);
         let pos = headerSize;
-        let blockCount = 0;
 
         while (pos < data.length - blockHeaderSize) {
             const blockSize = data[pos] | (data[pos+1] << 8);
             if (blockSize === 0) break;
             
-            // Skip the block header to reach compressed data
             pos += blockHeaderSize;
             if (pos + blockSize > data.length) break;
 
             try {
                 const block = data.slice(pos, pos + blockSize);
                 const inflator = new pako.Inflate();
-                
-                // Push block with Z_SYNC_FLUSH
                 inflator.push(block, 2); 
                 
-                // Because WC3 blocks don't have a Z_STREAM_END marker,
-                // Pako 2.x never assigns inflator.result and may not flush to chunks
-                // if the decompressed size (8192) is less than the default chunkSize (16384).
-                // The decompressed data is sitting in inflator.strm.output!
                 let inflated;
-                if (inflator.chunks && inflator.chunks.length > 0) {
-                    let totalLen = 0;
-                    for (const c of inflator.chunks) totalLen += c.length;
-                    inflated = new Uint8Array(totalLen);
-                    let off = 0;
-                    for (const c of inflator.chunks) { inflated.set(c, off); off += c.length; }
-                } else if (inflator.strm && inflator.strm.output && inflator.strm.next_out > 0) {
-                    // Extract directly from the internal stream buffer
+                if (inflator.strm && inflator.strm.output && inflator.strm.next_out > 0) {
                     inflated = inflator.strm.output.subarray(0, inflator.strm.next_out);
                 }
                 
@@ -1573,148 +1590,174 @@ async function handleReplayUpload(e) {
                     newDecomp.set(decompressed);
                     newDecomp.set(inflated, decompressed.length);
                     decompressed = newDecomp;
-                    blockCount++;
-                } else {
-                    console.warn("Block at " + pos + " produced no output.");
                 }
-            } catch (inflateErr) {
-                console.warn("Block at " + pos + " failed: ", String(inflateErr));
-            }
+            } catch (inflateErr) { console.warn(inflateErr); }
             pos += blockSize;
         }
 
-        if (decompressed.length === 0) {
-            let diag = "buildNo=" + buildNo + ", isReforged=" + isReforged + ", headerSize=" + headerSize;
-            
-            // Check first 3 blocks
-            let blockPos = headerSize;
-            let blocks = [];
-            for (let i=0; i<3; i++) {
-                if (blockPos + blockHeaderSize <= data.length) {
-                    const bSize = data[blockPos] | (data[blockPos+1] << 8);
-                    const dSize = data[blockPos+2] | (data[blockPos+3] << 8); // Reforged actually has padding here!
-                    // Wait, if isReforged, decompSize is at offset 4, not 2!
-                    const decompSize = isReforged ? (data[blockPos+4] | (data[blockPos+5] << 8)) : (data[blockPos+2] | (data[blockPos+3] << 8));
-                    
-                    if (bSize > 0 && blockPos + blockHeaderSize + bSize <= data.length) {
-                        const blockData = data.slice(blockPos + blockHeaderSize, blockPos + blockHeaderSize + bSize);
-                        blocks.push(blockData);
-                        diag += "\nBlock " + i + " header: " + blockData[0].toString(16) + " " + blockData[1].toString(16) + " (comp=" + bSize + ", decomp=" + decompSize + ")";
-                    }
-                    blockPos += blockHeaderSize + bSize;
-                }
-            }
-            
-            if (blocks.length > 0) {
-                try {
-                    const r = pako.inflate(blocks[0]);
-                    diag += "\npako.inflate(b[0]) OK, result=" + (r ? r.length : "falsy");
-                } catch(e) {
-                    diag += "\npako.inflate(b[0]) FAIL: " + e.message;
-                }
-            }
+        if (decompressed.length === 0) throw new Error("Decompression failed.");
 
-            throw new Error("Decompression failed.\n" + diag);
-        }
-
-        // 2. Scan Actions
         const bo = [];
         let time = 0;
-        let dPos = 0;
-        
-        // Basic scan for '0x10' (Ability/Build) packets
-        // This is a simplified parser
-        while (dPos < decompressed.length - 20) {
-            const blockId = decompressed[dPos];
-            
-            if (blockId === 0x1E || blockId === 0x1F) {
-                const blockSize = decompressed[dPos+1] | (decompressed[dPos+2] << 8);
-                const blockData = decompressed.slice(dPos, dPos + blockSize);
-                
-                // Read Time Increment
-                const timeInc = blockData[1] | (blockData[2] << 8);
-                time += timeInc;
-                
-                // Scan for actions in this block
-                let aPos = 5; // Start of actions
-                while (aPos < blockData.length - 10) {
-                    const actionId = blockData[aPos];
-                    if (actionId === 0x10) {
-                        // Action 0x10: Ability Command
-                        const abilityCode = String.fromCharCode(blockData[aPos+10], blockData[aPos+11], blockData[aPos+12], blockData[aPos+13]);
-                        const actionName = findActionNameByCode(abilityCode);
-                        
-                        if (actionName) {
-                            bo.push({
-                                time: Math.floor(time / 1000),
-                                gold: 0, wood: 0, food: 0, foodMax: 0,
-                                action: actionName,
-                                icons: [actionName]
-                            });
-                        }
-                        aPos += 14; // Approximate size
-                    } else if (actionId === 0x11) {
-                        aPos += 22;
-                    } else if (actionId === 0x12) {
-                        aPos += 10;
-                    } else {
-                        aPos++;
-                    }
+        let myPlayerId = -1;
+
+        // Detect Player ID for "jinzo"
+        for (let i = 0; i < Math.min(decompressed.length, 10000); i++) {
+            if (decompressed[i] === 0x10) {
+                let pName = "";
+                for(let j=i+6; j<i+60 && decompressed[j] !== 0; j++) pName += String.fromCharCode(decompressed[j]);
+                if (pName.toLowerCase().includes("jinzo")) {
+                    myPlayerId = decompressed[i+1];
+                    console.log("Detected Player ID: " + myPlayerId);
+                    break;
                 }
-                dPos += blockSize;
-            } else if (blockId === 0x17) {
-                dPos += 4; // Skip info
-            } else {
-                dPos++;
             }
+        }
+
+        // Find Game Data Start
+        let dPos = -1;
+        for (let i = 0; i < decompressed.length - 100; i++) {
+            if (decompressed[i] === 0x1F || decompressed[i] === 0x1E) {
+                dPos = i;
+                break;
+            }
+        }
+
+        if (dPos === -1) throw new Error("Could not find start of Game Data stream.");
+
+        while (dPos < decompressed.length - 2) {
+            const blockId = decompressed[dPos];
+            if (blockId === 0x1F || blockId === 0x1E) {
+                const bc = decompressed[dPos+1] | (decompressed[dPos+2] << 8);
+                const dt = decompressed[dPos+3] | (decompressed[dPos+4] << 8);
+                time += dt;
+                
+                let p = dPos + 5;
+                const end = dPos + 3 + bc;
+                
+                while (p < end - 3) {
+                    const pid = decompressed[p++];
+                    const actionLen = decompressed[p] | (decompressed[p+1] << 8);
+                    p += 2;
+                    const actionEnd = Math.min(p + actionLen, end);
+                    
+                    if (actionLen > 0 && (myPlayerId === -1 || pid === myPlayerId)) {
+                        while (p < actionEnd) {
+                            const pStart = p;
+                            const aid = decompressed[p++];
+                            let packetLen = 0;
+                            let isBuildOrderAction = false;
+
+                            // ONLY scan packets that are actual commands (0x10, 0x11, 0x12)
+                            if (aid === 0x10) { packetLen = 15; isBuildOrderAction = true; }
+                            else if (aid === 0x11) { packetLen = 23; isBuildOrderAction = true; }
+                            else if (aid === 0x12) { packetLen = 31; isBuildOrderAction = true; }
+                            else if (aid === 0x19) { packetLen = 13; isBuildOrderAction = true; }
+                            else if (aid === 0x1A) { packetLen = 10; isBuildOrderAction = true; }
+                            else if (aid === 0x13) { packetLen = 39; }
+                            else if (aid === 0x14) { packetLen = 44; }
+                            else if (aid === 0x16) { packetLen = 21; }
+                            else if (aid === 0x17) { packetLen = 36; }
+                            else if (aid === 0x21) { packetLen = 9; }
+                            else if (aid === 0x27 || aid === 0x28 || aid === 0x2D) { packetLen = 6; }
+                            else if (aid === 0x2E) { packetLen = 5; }
+                            
+                            if (isBuildOrderAction) {
+                                // Scan ONLY this specific command packet for a code
+                                for (let i = 0; i < packetLen - 4; i++) {
+                                    const checkPos = pStart + 1 + i;
+                                    if (checkPos + 4 > actionEnd) break;
+                                    const c1 = decompressed[checkPos], c2 = decompressed[checkPos+1], c3 = decompressed[checkPos+2], c4 = decompressed[checkPos+3];
+                                    const code1 = String.fromCharCode(c1, c2, c3, c4);
+                                    const code2 = String.fromCharCode(c4, c3, c2, c1);
+                                    const name = findActionNameByCode(code1) || findActionNameByCode(code2);
+                                    if (name) {
+                                        const curT = Math.floor(time/1000);
+                                        const last = bo[bo.length - 1];
+                                        const isHero = ['Archmage', 'Paladin', 'Mountain King', 'Blood Mage', 'Blademaster', 'Far Seer', 'Tauren Chieftain', 'Shadow Hunter', 'Death Knight', 'Lich', 'Dreadlord', 'Crypt Lord', 'Keeper of the Grove', 'Priestess of the Moon', 'Demon Hunter', 'Warden'].includes(name);
+                                        
+                                        let shouldAdd = false;
+                                        if (isHero) {
+                                            if (!bo.some(e => e.action === name)) shouldAdd = true;
+                                        } else {
+                                            if (!last || last.action !== name || last.time !== curT) shouldAdd = true;
+                                        }
+
+                                        if (shouldAdd) {
+                                            bo.push({ time: curT, action: name, icons: [name], gold: 0, wood: 0, food: 0, foodMax: 0 });
+                                        }
+                                        break; 
+                                    }
+                                }
+                            }
+                            
+                            if (packetLen > 0) p = pStart + packetLen;
+                            else break;
+                        }
+                    }
+                    p = actionEnd;
+                }
+                dPos = end;
+            } else if (blockId === 0x20) {
+                const len = decompressed[dPos+2] | (decompressed[dPos+3] << 8);
+                dPos += 4 + len;
+            } else if (blockId === 0x22) { dPos += (2 + decompressed[dPos+1]); }
+            else if (blockId === 0x17) { dPos += 13; }
+            else if (blockId === 0x23) { dPos += 11; }
+            else if (blockId === 0x2F) { dPos += 9; }
+            else { dPos++; }
         }
 
         if (bo.length > 0) {
             applyBuildOrder(bo, file.name.replace('.w3g', ''));
         } else {
-            let hex = "";
-            for(let i=0; i<Math.min(decompressed.length, 100); i++) {
-                hex += decompressed[i].toString(16).padStart(2, '0') + " ";
-            }
-            alert("Could not find any build actions in this replay.\nFirst 100 decomp bytes:\n" + hex + "\nNote: Only major build/train actions are detected.");
+            alert("No build actions found for your player in this replay.");
         }
 
     } catch (err) {
         console.error(err);
-        alert("Error parsing replay: " + err.message + "\n\nThis parser is experimental and might not support all WC3 versions.");
+        alert("Error parsing replay: " + err.message);
     }
     e.target.value = '';
 }
 
 // Map of common WC3 internal codes to names
 const ABILITY_CODES = {
+    // Human Units
     'hpea': 'Peasant', 'hfoo': 'Footman', 'hkni': 'Knight', 'hrit': 'Rifleman', 'hmtm': 'Mortar Team',
     'hgyr': 'Flying Machine', 'hgry': 'Gryphon Rider', 'hsor': 'Sorceress', 'hpri': 'Priest', 'hmsy': 'Spellbreaker',
-    'hwat': 'Water Elemental', 'hpal': 'Paladin', 'hamg': 'Archmage', 'hmtk': 'Mountain King', 'hblm': 'Blood Mage',
+    'hpal': 'Paladin', 'hamg': 'Archmage', 'hmtk': 'Mountain King', 'hblm': 'Blood Mage',
+    // Human Buildings
     'hhou': 'Farm', 'hwtw': 'Scout Tower', 'halt': 'Altar of Kings', 'hbar': 'Barracks', 'hbla': 'Blacksmith',
     'hcas': 'Castle', 'hkee': 'Keep', 'htow': 'Town Hall', 'hlum': 'Lumber Mill', 'hars': 'Arcane Sanctum',
     'hwsy': 'Workshop', 'hvlt': 'Arcane Vault', 'hgtw': 'Guard Tower', 'hatw': 'Cannon Tower', 'hbtw': 'Arcane Tower',
-    
-    'opeo': 'Peon', 'ogru': 'Grunt', 'orai': 'Raider', 'otae': 'Tauren', 'otrj': 'Troll Headhunter',
+
+    // Orc Units
+    'opeo': 'Peon', 'ogru': 'Grunt', 'orai': 'Raider', 'otae': 'Tauren', 'ohun': 'Troll Headhunter',
     'ocat': 'Demolisher', 'okod': 'Kodo Beast', 'owyv': 'Wind Rider', 'odoc': 'Witch Doctor', 'oshm': 'Shaman',
-    'ospw': 'Spirit Walker', 'ofar': 'Far Seer', 'otch': 'Tauren Chieftain', 'oshd': 'Shadow Hunter', 'obm': 'Blademaster',
+    'ospw': 'Spirit Walker', 'ofar': 'Far Seer', 'otch': 'Tauren Chieftain', 'oshd': 'Shadow Hunter', 'obla': 'Blademaster',
+    // Orc Buildings
     'ogre': 'Great Hall', 'ostr': 'Stronghold', 'ofor': 'Fortress', 'oalt': 'Altar of Storms', 'obar': 'Barracks',
-    'ofor': 'War Mill', 'obea': 'Beastiary', 'oshy': 'Spirit Lodge', 'otau': 'Tauren Totem', 'ovoo': 'Voodoo Lounge',
+    'owam': 'War Mill', 'obea': 'Beastiary', 'osly': 'Spirit Lodge', 'otau': 'Tauren Totem', 'ovoo': 'Voodoo Lounge',
     'obur': 'Orc Burrow', 'owtg': 'Watch Tower',
-    
-    'uaco': 'Acolyte', 'ugho': 'Ghoul', 'ucrypt': 'Crypt Fiend', 'uabo': 'Abomination', 'umvc': 'Meat Wagon',
+
+    // Undead Units
+    'uaco': 'Acolyte', 'ugho': 'Ghoul', 'ucry': 'Crypt Fiend', 'uabo': 'Abomination', 'umvc': 'Meat Wagon',
     'uobs': 'Obsidian Statue', 'ufro': 'Frost Wyrm', 'ugar': 'Gargoyle', 'uban': 'Banshee', 'unec': 'Necromancer',
-    'udkn': 'Death Knight', 'ulch': 'Lich', 'udrd': 'Dreadlord', 'ucry': 'Crypt Lord',
-    'unec': 'Necropolis', 'uhall': 'Halls of the Dead', 'ublk': 'Black Citadel', 'uabc': 'Altar of Darkness',
+    'udea': 'Death Knight', 'ulic': 'Lich', 'udre': 'Dreadlord', 'uclp': 'Crypt Lord',
+    // Undead Buildings
+    'unec': 'Necropolis', 'uhal': 'Halls of the Dead', 'ublk': 'Black Citadel', 'uabc': 'Altar of Darkness',
     'uzig': 'Ziggurat', 'unp1': 'Nerubian Tower', 'unp2': 'Spirit Tower', 'ugra': 'Graveyard', 'ucry': 'Crypt',
-    'utem': 'Temple of the Damned', 'uslh': 'Slaughterhouse', 'uapb': 'Ancient Protectors', 'utom': 'Tomb of Relics',
-    
+    'utem': 'Temple of the Damned', 'uslh': 'Slaughterhouse', 'utom': 'Tomb of Relics',
+
+    // Night Elf Units
     'ewsp': 'Wisp', 'earc': 'Archer', 'hunt': 'Huntress', 'ebal': 'Glaive Thrower', 'edry': 'Dryad',
-    'edon': 'Druid of the Claw', 'edoc': 'Druid of the Talon', 'emtg': 'Mountain Giant', 'ehip': 'Hippogryph',
-    'efon': 'Treant', 'edem': 'Demon Hunter', 'ekee': 'Keeper of the Grove', 'emgp': 'Priestess of the Moon', 'ewrd': 'Warden',
-    'etoe': 'Tree of Life', 'etoa': 'Tree of Ages', 'etoe': 'Tree of Eternity', 'eate': 'Altar of Elders',
-    'eaoo': 'Ancient of War', 'eaom': 'Ancient of Lore', 'eaoe': 'Ancient of Wind', 'eaol': 'Ancient of Lore',
-    'eden': 'Ancient of Wonders', 'eate': 'Ancient Protector', 'emow': 'Moon Well', 'edhr': 'Hunter\'s Hall'
+    'edoc': 'Druid of the Claw', 'edot': 'Druid of the Talon', 'emtg': 'Mountain Giant', 'ehip': 'Hippogryph',
+    'edem': 'Demon Hunter', 'ekee': 'Keeper of the Grove', 'epri': 'Priestess of the Moon', 'ewrd': 'Warden',
+    // Night Elf Buildings
+    'etol': 'Tree of Life', 'etoa': 'Tree of Ages', 'etoe': 'Tree of Eternity', 'eate': 'Altar of Elders',
+    'eaoo': 'Ancient of War', 'eaom': 'Ancient of Lore', 'eaoe': 'Ancient of Wind', 'eaow': 'Ancient of Wonders', 
+    'emow': 'Moon Well', 'edhr': 'Hunter\'s Hall', 'eate': 'Ancient Protector'
 };
 
 function findActionNameByCode(code) {
@@ -1722,7 +1765,179 @@ function findActionNameByCode(code) {
     return ABILITY_CODES[code] || null;
 }
 
-// Unused logic removed.
+
+// --- Paste Build Order Text Parser ---
+
+function parseBuildOrderText(text) {
+    const lines = text.split('\n').map(l => l.replace(/\r/g, ''));
+    const bo = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        // Match lines like "00:18	Built an Altar of Kings" or "00:18  Built an Altar of Kings"
+        const timeMatch = line.match(/^(\d{1,2}):(\d{2})\s+(.+)$/);
+        if (!timeMatch) continue; // Skip non-action lines (numbers, HERO, TECH tags)
+        
+        const mins = parseInt(timeMatch[1]);
+        const secs = parseInt(timeMatch[2]);
+        const totalSeconds = mins * 60 + secs;
+        const actionText = timeMatch[3].trim();
+        
+        // Skip "Cancelled" actions
+        if (actionText.toLowerCase().startsWith('cancelled')) continue;
+        
+        // Extract entity name from action text
+        let entityName = actionText;
+        let actionPrefix = '';
+        
+        if (actionText.startsWith('Built a ')) {
+            entityName = actionText.replace('Built a ', '');
+            actionPrefix = 'Build ';
+        } else if (actionText.startsWith('Built an ')) {
+            entityName = actionText.replace('Built an ', '');
+            actionPrefix = 'Build ';
+        } else if (actionText.startsWith('Trained ')) {
+            // Hero abilities like "Trained Holy Light Level 1"
+            entityName = actionText.replace('Trained ', '');
+            actionPrefix = 'Train ';
+        } else if (actionText.startsWith('Researched ')) {
+            entityName = actionText.replace('Researched ', '');
+            actionPrefix = 'Research ';
+        } else if (actionText.startsWith('Upgraded ')) {
+            entityName = actionText.replace('Upgraded ', '');
+            actionPrefix = 'Upgrade ';
+        }
+        
+        // Check if next line is a tag like HERO, TECH, or a number
+        let subtext = '';
+        if (i + 1 < lines.length) {
+            const nextLine = lines[i + 1].trim();
+            if (nextLine === 'HERO') { subtext = 'Hero'; i++; }
+            else if (nextLine === 'TECH') { subtext = 'Tech Upgrade'; i++; }
+            else if (/^\d+$/.test(nextLine)) { subtext = '#' + nextLine; i++; }
+        }
+        
+        // Determine icon name
+        let iconName = entityName;
+        // For hero abilities like "Holy Light Level 1", extract the skill name
+        const levelMatch = entityName.match(/ Level \d+$/);
+        if (actionPrefix === 'Train ' && levelMatch) {
+            iconName = entityName.replace(levelMatch[0], ''); // e.g. "Holy Light"
+            subtext = entityName; // Put full ability name as subtext
+            actionPrefix = '';
+        }
+        // For research/upgrades, try to find a matching icon
+        if (actionPrefix === 'Research ') {
+            // Map common research names e.g. "Black Gunpowder" -> "Gunpowder"
+            iconName = entityName;
+        }
+        
+        const entry = {
+            time: totalSeconds,
+            gold: 0, // Left blank per user request
+            wood: 0, // Left blank per user request
+            food: 0, // Left blank per user request
+            foodMax: 0, // Left blank per user request
+            action: actionPrefix ? actionPrefix + entityName : entityName,
+            subtext: subtext,
+            icons: [iconName]
+        };
+        
+        bo.push(entry);
+    }
+    
+    return bo;
+}
+
+// Paste Build Order UI Logic
+(function initPasteBO() {
+    const pasteBOBtn = document.getElementById('pasteBOBtn');
+    const pasteBOModal = document.getElementById('pasteBOModal');
+    const closePasteBOModal = document.getElementById('closePasteBOModal');
+    const cancelPasteBOBtn = document.getElementById('cancelPasteBOBtn');
+    const applyPasteBOBtn = document.getElementById('applyPasteBOBtn');
+    const pasteBOTextarea = document.getElementById('pasteBOTextarea');
+    const pasteBOPreview = document.getElementById('pasteBOPreview');
+    const pasteBOError = document.getElementById('pasteBOError');
+    
+    if (!pasteBOBtn || !pasteBOModal) return;
+    
+    pasteBOBtn.addEventListener('click', () => {
+        pasteBOTextarea.value = '';
+        pasteBOPreview.style.display = 'none';
+        pasteBOError.style.display = 'none';
+        pasteBOModal.classList.add('active');
+        pasteBOTextarea.focus();
+    });
+    
+    closePasteBOModal.addEventListener('click', () => pasteBOModal.classList.remove('active'));
+    cancelPasteBOBtn.addEventListener('click', () => pasteBOModal.classList.remove('active'));
+    
+    // Live preview on paste/input
+    pasteBOTextarea.addEventListener('input', () => {
+        const text = pasteBOTextarea.value.trim();
+        if (!text) {
+            pasteBOPreview.style.display = 'none';
+            pasteBOError.style.display = 'none';
+            return;
+        }
+        
+        try {
+            const bo = parseBuildOrderText(text);
+            if (bo.length === 0) {
+                pasteBOError.textContent = 'No valid build order entries found. Make sure each line starts with a timestamp like "00:18".';
+                pasteBOError.style.display = 'block';
+                pasteBOPreview.style.display = 'none';
+            } else {
+                const lastTime = bo[bo.length - 1].time;
+                const mins = Math.floor(lastTime / 60);
+                const secs = lastTime % 60;
+                pasteBOPreview.innerHTML = `✅ Found <strong>${bo.length}</strong> entries (${mins}:${String(secs).padStart(2,'0')} total duration)`;
+                pasteBOPreview.style.display = 'block';
+                pasteBOError.style.display = 'none';
+            }
+        } catch (err) {
+            pasteBOError.textContent = 'Error parsing: ' + err.message;
+            pasteBOError.style.display = 'block';
+            pasteBOPreview.style.display = 'none';
+        }
+    });
+    
+    applyPasteBOBtn.addEventListener('click', () => {
+        const text = pasteBOTextarea.value.trim();
+        if (!text) {
+            pasteBOError.textContent = 'Please paste some build order text first.';
+            pasteBOError.style.display = 'block';
+            return;
+        }
+        
+        const bo = parseBuildOrderText(text);
+        if (bo.length === 0) {
+            pasteBOError.textContent = 'No valid entries found. Check the format.';
+            pasteBOError.style.display = 'block';
+            return;
+        }
+        
+        // Apply build order
+        applyBuildOrder(bo, 'Pasted_Build_Order');
+        
+        // Close paste modal
+        pasteBOModal.classList.remove('active');
+        
+        // Open editor so user can refine
+        if (editorModal) {
+            renderEditor();
+            const delayInput = document.getElementById('delayInput');
+            if (delayInput) delayInput.value = savedDelay;
+            editorModal.classList.add('active');
+        }
+    });
+})();
+
+
+
 // --- Feedback System ---
 const feedbackBtn = document.getElementById('feedbackBtn');
 const feedbackModal = document.getElementById('feedbackModal');
@@ -1760,6 +1975,89 @@ if (feedbackBtn && feedbackModal && closeFeedbackBtn && submitFeedbackBtn) {
     });
 }
 // -----------------------------
+
+// --- Sidebar Collapse System ---
+const historySidebar = document.getElementById('historySidebar');
+const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+
+if (historySidebar && toggleSidebarBtn) {
+    // Load initial state
+    const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    if (isCollapsed) {
+        historySidebar.classList.add('collapsed');
+        toggleSidebarBtn.textContent = '+';
+        toggleSidebarBtn.title = 'Build Order Log ausklappen';
+    }
+
+    toggleSidebarBtn.addEventListener('click', () => {
+        const collapsedNow = historySidebar.classList.toggle('collapsed');
+        localStorage.setItem('sidebarCollapsed', collapsedNow);
+        
+        if (collapsedNow) {
+            toggleSidebarBtn.textContent = '+';
+            toggleSidebarBtn.title = 'Build Order Log ausklappen';
+        } else {
+            toggleSidebarBtn.textContent = '−';
+            toggleSidebarBtn.title = 'Build Order Log einklappen';
+        }
+    });
+}
+
+// --- How To Use Modal System ---
+const howToUseBtn = document.getElementById('howToUseBtn');
+const howToUseModal = document.getElementById('howToUseModal');
+const closeHowToUseModal = document.getElementById('closeHowToUseModal');
+const closeHowToUseFooterBtn = document.getElementById('closeHowToUseFooterBtn');
+const backToMenuBtn = document.getElementById('backToMenuBtn');
+const howToUseTitle = document.getElementById('howToUseTitle');
+const howToUseMenu = document.getElementById('howToUseMenu');
+
+const cardUsingTool = document.getElementById('cardUsingTool');
+const cardEditingBO = document.getElementById('cardEditingBO');
+const cardImportingBO = document.getElementById('cardImportingBO');
+
+const subviewUsingTool = document.getElementById('subviewUsingTool');
+const subviewEditingBO = document.getElementById('subviewEditingBO');
+const subviewImportingBO = document.getElementById('subviewImportingBO');
+
+if (howToUseBtn && howToUseModal) {
+    const showMenu = () => {
+        howToUseMenu.style.display = 'block';
+        subviewUsingTool.classList.remove('active');
+        subviewEditingBO.classList.remove('active');
+        subviewImportingBO.classList.remove('active');
+        backToMenuBtn.style.display = 'none';
+        howToUseTitle.textContent = '📖 How to Use Build Order Helper';
+    };
+
+    const showSubview = (subview, titleText) => {
+        howToUseMenu.style.display = 'none';
+        subviewUsingTool.classList.remove('active');
+        subviewEditingBO.classList.remove('active');
+        subviewImportingBO.classList.remove('active');
+        
+        subview.classList.add('active');
+        backToMenuBtn.style.display = 'inline-flex';
+        howToUseTitle.textContent = titleText;
+    };
+
+    howToUseBtn.addEventListener('click', () => {
+        howToUseModal.classList.add('active');
+        showMenu();
+    });
+
+    const closeModal = () => {
+        howToUseModal.classList.remove('active');
+    };
+
+    if (closeHowToUseModal) closeHowToUseModal.addEventListener('click', closeModal);
+    if (closeHowToUseFooterBtn) closeHowToUseFooterBtn.addEventListener('click', closeModal);
+    if (backToMenuBtn) backToMenuBtn.addEventListener('click', showMenu);
+
+    if (cardUsingTool) cardUsingTool.addEventListener('click', () => showSubview(subviewUsingTool, '🎮 Using the tool'));
+    if (cardEditingBO) cardEditingBO.addEventListener('click', () => showSubview(subviewEditingBO, '✏️ Editing a Build order'));
+    if (cardImportingBO) cardImportingBO.addEventListener('click', () => showSubview(subviewImportingBO, '📋 Importing a Build order via Text'));
+}
 
 // Start
 initTimeline();
